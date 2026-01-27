@@ -1,0 +1,70 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Default Dark Mode (Deep Navy/Neon) */
+    --color-primary: 10 25 47;
+    --color-secondary: 17 34 64;
+    --color-text-primary: 248 249 250;
+    --color-text-secondary: 136 146 176;
+    --color-accent: 100 255 218;
+    --color-purple: 189 52 254;
+    --color-border: 255 255 255 / 0.1;
+    --grid-color: 255 255 255 / 0.05;
+  }
+
+  /* Professional Soft Light Mode - Optimized for comfort */
+  .light {
+    --color-primary: 241 245 249;
+    /* Slate-100 (Softer than stark white) */
+    --color-secondary: 255 255 255;
+    /* White Cards */
+    --color-text-primary: 30 41 59;
+    /* Slate-800 (Softer than Slate-900) */
+    --color-text-secondary: 100 116 139;
+    /* Slate-500 */
+    --color-accent: 37 99 235;
+    /* Blue-600 */
+    --color-purple: 124 58 237;
+    /* Violet-600 */
+    --color-border: 226 232 240;
+    /* Slate-200 */
+    --grid-color: 15 23 42 / 0.05;
+  }
+
+  body {
+    @apply bg-primary text-text-primary font-sans transition-colors duration-300;
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-primary;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-secondary rounded-full border-2 border-primary;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-text-secondary;
+}
+
+.glass-panel {
+  @apply bg-secondary/80 backdrop-blur-md border border-white/10;
+}
+
+.text-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-accent to-purple;
+}
