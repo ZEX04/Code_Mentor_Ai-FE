@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, Link } from 'react-router-dom';
 import { LayoutDashboard, Map, FileText, Settings, Plus, LogOut, Bell, Search, Menu } from 'lucide-react';
 // Minimal avatar placeholder or icon
 import { User } from 'lucide-react';
@@ -19,7 +19,9 @@ const DashboardLayout = () => {
             {/* Sidebar */}
             <aside className="w-64 bg-secondary border-r border-white/5 flex flex-col hidden md:flex">
                 <div className="p-6 border-b border-white/5">
-                    <h1 className="text-xl font-bold text-accent">CodeMentor AI</h1>
+                    <Link to="/">
+                        <h1 className="text-xl font-bold text-accent hover:opacity-80 transition-opacity">CodeMentor AI</h1>
+                    </Link>
                 </div>
 
                 <div className="p-4">

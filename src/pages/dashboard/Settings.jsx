@@ -93,7 +93,7 @@ const Toggle = ({ label, description, defaultChecked }) => {
             </div>
             <button
                 onClick={() => setChecked(!checked)}
-                className={`w-11 h-6 rounded-full relative transition-colors ${checked ? 'bg-accent' : 'bg-border'}`}
+                className={`w-11 h-6 rounded-full relative transition-colors ${checked ? 'bg-accent border border-transparent' : 'bg-gray-200 dark:bg-white/5 border border-gray-300 dark:border-white/20'}`}
             >
                 <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${checked ? 'left-6' : 'left-1'}`}></div>
             </button>
