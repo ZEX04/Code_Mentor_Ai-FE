@@ -25,10 +25,10 @@ const DashboardLayout = () => {
                 </div>
 
                 <div className="p-4">
-                    <button className="w-full py-3 mb-6 bg-gradient-to-r from-accent/20 to-purple/20 border border-accent/30 rounded-xl text-white flex items-center justify-center gap-2 hover:brightness-110 transition-all">
+                    <Link to="/dashboard/chat" className="w-full py-3 mb-6 bg-gradient-to-r from-accent/20 to-purple/20 border border-accent/30 rounded-xl text-white flex items-center justify-center gap-2 hover:brightness-110 transition-all">
                         <Plus className="w-5 h-5" />
                         <span>New Chat</span>
-                    </button>
+                    </Link>
 
                     <nav className="flex flex-col gap-2">
                         <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" />

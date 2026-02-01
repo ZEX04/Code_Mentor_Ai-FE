@@ -8,6 +8,7 @@ import Roadmap from './pages/dashboard/Roadmap';
 import Settings from './pages/dashboard/Settings';
 import Reports from './pages/dashboard/Reports';
 import Profile from './pages/dashboard/Profile';
+import Chat from './pages/dashboard/Chat';
 // Actually Reports was defined inline. Let's move it to its own file or keep it simple.
 // I earlier created `src/pages/dashboard/Reports.jsx`. I should use THAT.
 
@@ -24,6 +25,7 @@ function App() {
           {/* Dashboard Routes */}
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<DashboardHome />} />
+            <Route path="chat" element={<Chat />} />
             <Route path="roadmap" element={<Roadmap />} />
             <Route path="settings" element={<Settings />} />
             <Route path="reports" element={<Reports />} />
