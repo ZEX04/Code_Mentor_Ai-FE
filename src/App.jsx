@@ -21,6 +21,10 @@ function App() {
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/login" element={<Auth />} />
+          <Route path="/register" element={<Auth />} />
+          <Route path="/signup" element={<Auth />} />
+          <Route path="/home" element={<Navigate to="/dashboard" replace />} />
 
           {/* Dashboard Routes */}
           <Route path="/dashboard" element={<DashboardLayout />}>

@@ -2,6 +2,9 @@ import React from 'react';
 import { Play, Upload, Target, ArrowRight, Rocket } from 'lucide-react';
 
 const DashboardHome = () => {
+    const user = JSON.parse(localStorage.getItem('user'));
+    const userName = user?.user_metadata?.full_name || user?.email || 'Friend';
+
     return (
         <div className="max-w-7xl mx-auto space-y-8">
 
@@ -9,7 +12,7 @@ const DashboardHome = () => {
             <div className="relative rounded-3xl bg-gradient-to-r from-[#4F6EF7] via-[#9F5DFA] to-[#4F6EF7] p-10 shadow-lg overflow-hidden border border-white/10">
                 <div className="relative z-10">
                     <h1 className="text-4xl font-bold text-white mb-2 drop-shadow-md">
-                        Hello , Ebram <span className="animate-wave inline-block">👋</span>
+                        Hello , {userName} <span className="animate-wave inline-block">👋</span>
                     </h1>
                     <p className="text-2xl font-semibold text-white/90 drop-shadow-sm">Your Ai Mentor is ready .</p>
                 </div>

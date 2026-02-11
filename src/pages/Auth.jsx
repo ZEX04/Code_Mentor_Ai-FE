@@ -1,13 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import LoginForm from '../components/auth/LoginForm';
 import SignupForm from '../components/auth/SignupForm';
 
 const Auth = () => {
+    const location = useLocation();
+    const navigate = useNavigate();
     const [isLogin, setIsLogin] = useState(true);
 
+    useEffect(() => {
+        if (location.pathname === '/register' || location.pathname === '/signup') {
+            setIsLogin(false);
+        } else {
+            setIsLogin(true);
+        }
+    }, [location.pathname]);
+
     const toggleAuth = () => {
-        setIsLogin(!isLogin);
+        const newMode = !isLogin;
+        setIsLogin(newMode);
+        navigate(newMode ? '/login' : '/register');
     };
 
     return (
@@ -20,37 +33,13 @@ const Auth = () => {
             {/* Main Container */}
             <div className="relative w-full max-w-[900px] min-h-[550px] bg-secondary border border-white/10 rounded-[30px] shadow-2xl overflow-hidden flex">
 
-                {/* Form Container: Login */}
-                <motion.div
-                    className="absolute top-0 left-0 w-1/2 h-full z-10"
-                    animate={{
-                        x: isLogin ? "0%" : "100%",
-                        opacity: isLogin ? 1 : 0,
-                        zIndex: isLogin ? 10 : 0
-                    }}
-                    transition={{ duration: 0.6, ease: "easeInOut" }}
-                >
-                    <LoginForm />
-                </motion.div>
-
-                {/* Form Container: Signup */}
-                <motion.div
-                    className="absolute top-0 left-0 w-1/2 h-full z-10"
-                    animate={{
-                        x: isLogin ? "100%" : "100%",
-                        zIndex: !isLogin ? 10 : 0,
-                        opacity: !isLogin ? 1 : 0,
-                    }}
-                >
-                </motion.div>
-
                 {/* Left Side (Login Form Location) */}
-                <div className={`absolute top-0 left-0 w-1/2 h-full transition-all duration-700 ease-in-out z-20 ${isLogin ? 'opacity-100' : 'opacity-0 translate-x-[100%]'}`}>
+                <div className={`absolute top-0 left-0 w-1/2 h-full transition-all duration-700 ease-in-out ${isLogin ? 'opacity-100 z-20' : 'opacity-0 translate-x-[100%] z-10 pointer-events-none'}`}>
                     <LoginForm />
                 </div>
 
                 {/* Right Side (Signup Form Location) */}
-                <div className={`absolute top-0 left-0 w-1/2 h-full transition-all duration-700 ease-in-out z-20 ${!isLogin ? 'opacity-100 translate-x-[100%]' : 'opacity-0'}`}>
+                <div className={`absolute top-0 left-0 w-1/2 h-full transition-all duration-700 ease-in-out ${!isLogin ? 'opacity-100 translate-x-[100%] z-20' : 'opacity-0 z-10 pointer-events-none'}`}>
                     <SignupForm />
                 </div>
 

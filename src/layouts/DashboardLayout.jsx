@@ -6,6 +6,18 @@ import { User } from 'lucide-react';
 
 const DashboardLayout = () => {
     const [showNotifications, setShowNotifications] = React.useState(false);
+    const [user, setUser] = React.useState(null);
+
+    React.useEffect(() => {
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+            try {
+                setUser(JSON.parse(storedUser));
+            } catch (e) {
+                console.error("Failed to parse user from local storage", e);
+            }
+        }
+    }, []);
 
     const notifications = [
         { id: 1, title: 'New Review', message: 'Your Python script has been reviewed.', time: '2m ago' },
@@ -44,10 +56,14 @@ const DashboardLayout = () => {
                             <User className="w-6 h-6" />
                         </div>
                         <div>
-                            <h4 className="text-sm font-semibold text-text-primary">Ebram Emad</h4>
-                            <span className="text-xs text-green-400 flex items-center gap-1">
-                                <span className="w-2 h-2 bg-green-400 rounded-full"></span> Pro Member
-                            </span>
+                            <h4 className="text-sm font-semibold text-text-primary">
+                                {user?.user_metadata?.full_name || user?.email || 'User'}
+                            </h4>
+                            {user?.user_metadata?.pro_member && (
+                                <span className="text-xs text-green-400 flex items-center gap-1">
+                                    <span className="w-2 h-2 bg-green-400 rounded-full"></span> Pro Member
+                                </span>
+                            )}
                         </div>
 
                         {/* Logout Tooltip/Menu (Simple) */}

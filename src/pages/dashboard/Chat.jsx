@@ -18,10 +18,42 @@ const Chat = () => {
         'C#'
     ];
 
-    const handleSubmit = () => {
-        // Logic to submit (mock)
-        setShowToast(true);
-        setTimeout(() => setShowToast(false), 3000); // Hide after 3 seconds
+    const handleSubmit = async () => {
+        if (!problem || !solution) {
+            alert('Please fill in both the problem and your solution.');
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('You must be logged in to submit.');
+                return;
+            }
+
+            const response = await fetch('https://rqqdmxvhhrxdghnhefmp.supabase.co/functions/v1/code_submit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    problem_code: problem,
+                    solution_code: solution
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || errorData.error || 'Submission failed');
+            }
+
+            setShowToast(true);
+            setTimeout(() => setShowToast(false), 3000); // Hide after 3 seconds
+        } catch (error) {
+            console.error('Submission error:', error);
+            alert(`Error: ${error.message}`);
+        }
     };
 
     return (
@@ -36,7 +68,7 @@ const Chat = () => {
                         </div>
                         <div>
                             <h4 className="font-bold text-sm">Success!</h4>
-                            <p className="text-xs text-text-secondary">Report created & added to reports page.</p>
+                            <p className="text-xs text-text-secondary">Solution Submitted Successfully!</p>
                         </div>
                     </div>
                 </div>
