@@ -31,31 +31,16 @@ const LoginForm = () => {
         setLoading(true);
 
         try {
-            const response = await fetch('https://rqqdmxvhhrxdghnhefmp.supabase.co/auth/v1/token?grant_type=password', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'apikey': 'sb_publishable_uFkTNQBEEI5_cfWrKmSseQ_76imNDzP'
-                },
-                body: JSON.stringify({
-                    email,
-                    password
-                })
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password,
             });
 
-            const data = await response.json();
+            if (error) throw error;
 
-            if (!response.ok) {
-                throw new Error(data.error_description || data.msg || 'Login failed');
-            }
-
-            if (data.access_token) {
-                localStorage.setItem('token', data.access_token);
-                localStorage.setItem('user', JSON.stringify(data.user));
-                navigate('/home');
-            } else {
-                throw new Error('No access token received');
-            }
+            // Session is automatically persisted by Supabase SDK
+            // No need to manually set localStorage items
+            navigate('/home');
 
         } catch (err) {
             setError(err.message || 'An error occurred during login');

@@ -1,12 +1,14 @@
 import React from 'react';
 import { NavLink, Outlet, Link } from 'react-router-dom';
-import { LayoutDashboard, Map, FileText, Settings, Plus, LogOut, Bell, Search, Menu } from 'lucide-react';
+import { LayoutDashboard, Map, FileText, Settings, Plus, LogOut, Bell, Search, Menu, Loader2 } from 'lucide-react';
 // Minimal avatar placeholder or icon
 import { User } from 'lucide-react';
+import { useReports } from '../context/ReportContext';
 
 const DashboardLayout = () => {
     const [showNotifications, setShowNotifications] = React.useState(false);
     const [user, setUser] = React.useState(null);
+    const { isLoading } = useReports();
 
     React.useEffect(() => {
         const storedUser = localStorage.getItem('user');
@@ -18,6 +20,17 @@ const DashboardLayout = () => {
             }
         }
     }, []);
+
+    if (isLoading) {
+        return (
+            <div className="flex h-screen w-screen items-center justify-center bg-primary text-white">
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="w-12 h-12 animate-spin text-accent" />
+                    <p className="text-lg font-medium text-text-secondary">Loading your workspace...</p>
+                </div>
+            </div>
+        );
+    }
 
     const notifications = [
         { id: 1, title: 'New Review', message: 'Your Python script has been reviewed.', time: '2m ago' },

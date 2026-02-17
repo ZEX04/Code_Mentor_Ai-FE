@@ -71,6 +71,7 @@ const DashboardHome = () => {
                     buttonText="Select File"
                     buttonColor="bg-primary/50"
                     glow="group-hover:shadow-[0_0_30px_rgba(236,72,153,0.3)]"
+                    onClick={() => navigate('/dashboard/submit')}
                 />
 
                 {/* Today's Goal Card */}
@@ -90,7 +91,7 @@ const DashboardHome = () => {
     );
 };
 
-const ActionCard = ({ icon: Icon, iconColor, iconBg, title, subtitle, buttonText, buttonColor, glow }) => (
+const ActionCard = ({ icon: Icon, iconColor, iconBg, title, subtitle, buttonText, buttonColor, glow, onClick }) => (
     <div className={`relative rounded-3xl bg-secondary/40 backdrop-blur-2xl border border-border p-8 flex flex-col items-center text-center transition-all duration-300 group ${glow} hover:-translate-y-1 shadow-2xl`}>
         {/* Glassmorphic gradient overlay */}
         <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-white/10 via-transparent to-transparent pointer-events-none"></div>
@@ -111,7 +112,10 @@ const ActionCard = ({ icon: Icon, iconColor, iconBg, title, subtitle, buttonText
             {subtitle}
         </p>
 
-        <button className={`relative mt-auto w-full py-3.5 rounded-xl border border-border text-text-primary font-semibold tracking-wide shadow-lg hover:brightness-125 transition-all active:scale-95 ${buttonColor} backdrop-blur-sm z-10`}>
+        <button
+            onClick={onClick}
+            className={`relative mt-auto w-full py-3.5 rounded-xl border border-border text-text-primary font-semibold tracking-wide shadow-lg hover:brightness-125 transition-all active:scale-95 ${buttonColor} backdrop-blur-sm z-10`}
+        >
             {buttonText}
         </button>
     </div>

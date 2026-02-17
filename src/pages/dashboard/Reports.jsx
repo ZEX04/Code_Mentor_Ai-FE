@@ -1,101 +1,54 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Zap, FileCode, Activity, Eye, Calendar, Code, CheckCircle, AlertTriangle, XCircle, Terminal, Lightbulb, ChevronRight } from 'lucide-react';
+import { useReports } from '../../context/ReportContext';
+import { getIconByName } from '../../utils/reportUtils';
+import { useNavigate } from 'react-router-dom';
 
 const Reports = () => {
-    const [selectedReportId, setSelectedReportId] = useState(1);
+    const { reports, isLoading } = useReports();
+    const [selectedReportId, setSelectedReportId] = useState(null);
+    const navigate = useNavigate();
 
-    const reports = [
-        {
-            id: 1,
-            language: 'C++',
-            title: 'Algorithm Implementation Review',
-            date: 'Jan 20, 2025',
-            score: 85,
-            status: 'Excellent',
-            color: 'from-blue-500 to-cyan-500',
-            icon: Zap,
-            quality: { readability: 92, maintainability: 85, efficiency: 88 },
-            issues: { critical: 0, warnings: 3, suggestions: 7 },
-            snippet: `function calculateSum(arr) {
-  let sum = 0;
-  for (let i= 0; i < arr.length; i++) {
-    sum += arr[i];
-  }
-  return sum;
-}
-// Suggestion: Consider using reduce()
-// const sum = arr.reduce((acc, val) => acc + val, 0);`,
-            recommendations: [
-                "Consider using more descriptive variable names",
-                "Add error handling for edge cases",
-                "Optimize algorithm complexity from O(n^2) to O(n)",
-                "Add JSDoc comments for better documentation"
-            ]
-        },
-        {
-            id: 2,
-            language: 'Python',
-            title: 'Data Processing Script Analysis',
-            date: 'Jan 18, 2025',
-            score: 92,
-            status: 'Outstanding',
-            color: 'from-green-500 to-emerald-500',
-            icon: Activity,
-            quality: { readability: 98, maintainability: 95, efficiency: 90 },
-            issues: { critical: 0, warnings: 1, suggestions: 2 },
-            snippet: `def process_data(data):
-    return [d * 2 for d in data if d > 0]`,
-            recommendations: [
-                "Use type hints for better code clarity",
-                "Add docstring to explain function purpose"
-            ]
-        },
-        {
-            id: 3,
-            language: 'C#',
-            title: 'API Development Best Practices',
-            date: 'Jan 15, 2025',
-            score: 78,
-            status: 'Good',
-            color: 'from-purple to-purple',
-            icon: FileCode,
-            quality: { readability: 80, maintainability: 75, efficiency: 82 },
-            issues: { critical: 1, warnings: 5, suggestions: 8 },
-            snippet: `public IActionResult GetUsers() {
-    var users = _context.Users.ToList();
-    return Ok(users);
-}`,
-            recommendations: [
-                "Implement pagination for large datasets",
-                "Use DTOs instead of returning entity models directly",
-                "Add async/await support"
-            ]
-        },
-        {
-            id: 4,
-            language: 'JavaScript',
-            title: 'React Component Optimization',
-            date: 'Jan 12, 2025',
-            score: 68,
-            status: 'Average',
-            color: 'from-orange-500 to-yellow-500',
-            icon: Code,
-            quality: { readability: 70, maintainability: 65, efficiency: 60 },
-            issues: { critical: 2, warnings: 8, suggestions: 12 },
-            snippet: `const MyComponent = () => {
-   // Heavy computation inside render
-   const data = heavyCalc(); 
-   return <div>{data}</div>
-}`,
-            recommendations: [
-                "Memoize heavy calculations with useMemo",
-                "Break down into smaller components",
-                "Fix missing dependency warnings in useEffect"
-            ]
+    useEffect(() => {
+        if (reports && reports.length > 0) {
+            if (!selectedReportId) {
+                setSelectedReportId(reports[0].id);
+            }
         }
-    ];
+    }, [reports, selectedReportId]);
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+        );
+    }
+
+    if (!reports || reports.length === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
+                <div className="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center">
+                    <Terminal className="w-12 h-12 text-text-secondary" />
+                </div>
+                <div>
+                    <h2 className="text-2xl font-bold text-text-primary mb-2">No Reports Available</h2>
+                    <p className="text-text-secondary max-w-md">
+                        Submit your code for analysis to generate your first report.
+                    </p>
+                </div>
+                <button
+                    onClick={() => navigate('/dashboard')}
+                    className="px-6 py-3 rounded-xl bg-primary hover:bg-primary/80 text-white font-semibold transition-colors"
+                >
+                    Go to Dashboard
+                </button>
+            </div>
+        );
+    }
 
     const selectedReport = reports.find(r => r.id === selectedReportId) || reports[0];
+    const SelectedIcon = getIconByName(selectedReport.iconName);
 
     return (
         <div className="flex flex-col lg:flex-row h-full gap-6 overflow-hidden">
@@ -108,48 +61,51 @@ const Reports = () => {
                 </div>
 
                 <div className="space-y-4">
-                    {reports.map((report) => (
-                        <div
-                            key={report.id}
-                            onClick={() => setSelectedReportId(report.id)}
-                            className={`group relative p-4 rounded-xl cursor-pointer transition-all duration-300 overflow-hidden bg-secondary border hover:bg-text-primary/5 ${selectedReportId === report.id ? 'border-border' : 'border-transparent'}`}
-                        >
-                            {/* Bottom Gradient Border */}
-                            <div className={`absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r ${report.color}`}></div>
+                    {reports.map((report) => {
+                        const ReportIcon = getIconByName(report.iconName);
+                        return (
+                            <div
+                                key={report.id}
+                                onClick={() => setSelectedReportId(report.id)}
+                                className={`group relative p-4 rounded-xl cursor-pointer transition-all duration-300 overflow-hidden bg-secondary border hover:bg-text-primary/5 ${selectedReportId === report.id ? 'border-border' : 'border-transparent'}`}
+                            >
+                                {/* Bottom Gradient Border */}
+                                <div className={`absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r ${report.color}`}></div>
 
-                            {/* Right Skewed Accent */}
-                            <div className="absolute top-0 right-0 w-24 h-full bg-white/5 skew-x-[-20deg] transform translate-x-12 group-hover:translate-x-8 transition-transform duration-500"></div>
+                                {/* Right Skewed Accent */}
+                                <div className="absolute top-0 right-0 w-24 h-full bg-white/5 skew-x-[-20deg] transform translate-x-12 group-hover:translate-x-8 transition-transform duration-500"></div>
 
-                            <div className="flex items-center justify-between relative z-10">
-                                <div className="flex items-center gap-4">
-                                    {/* Icon Badge */}
-                                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${report.color} p-[1px] shadow-lg`}>
-                                        <div className="w-full h-full bg-secondary rounded-xl flex items-center justify-center">
-                                            <report.icon className="w-6 h-6 text-text-primary" />
+                                <div className="flex items-center justify-between relative z-10">
+                                    <div className="flex items-center gap-4">
+                                        {/* Icon Badge */}
+                                        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${report.color} p-[1px] shadow-lg`}>
+                                            <div className="w-full h-full bg-secondary rounded-xl flex items-center justify-center">
+                                                <ReportIcon className="w-6 h-6 text-text-primary" />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <div className="flex items-center gap-3">
+                                                <h3 className="font-bold text-text-primary text-lg tracking-wide group-hover:underline decoration-2 underline-offset-4 decoration-accent transition-all">{report.language}</h3>
+                                                <span className={`text-[10px] px-2 py-0.5 rounded-full border border-white/10 ${report.status === 'Excellent' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                                                    {report.status}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-xs text-text-secondary mt-1">
+                                                <span>{report.title}</span>
+                                                <span>•</span>
+                                                <span>{report.date}</span>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div>
-                                        <div className="flex items-center gap-3">
-                                            <h3 className="font-bold text-text-primary text-lg tracking-wide group-hover:underline decoration-2 underline-offset-4 decoration-accent transition-all">{report.language}</h3>
-                                            <span className={`text-[10px] px-2 py-0.5 rounded-full border border-white/10 ${report.status === 'Excellent' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>
-                                                {report.status}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-xs text-text-secondary mt-1">
-                                            <span>{report.title}</span>
-                                            <span>•</span>
-                                            <span>{report.date}</span>
-                                        </div>
+                                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
+                                        <ChevronRight className="w-4 h-4 text-text-secondary group-hover:text-text-primary" />
                                     </div>
-                                </div>
-
-                                <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
-                                    <ChevronRight className="w-4 h-4 text-text-secondary group-hover:text-text-primary" />
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
 
@@ -162,11 +118,12 @@ const Reports = () => {
                         <div>
                             <div className="flex items-center gap-3 mb-2">
                                 <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                                    <selectedReport.icon className="w-6 h-6" />
+                                    <SelectedIcon className="w-6 h-6" />
                                 </div>
                                 <h2 className="text-2xl font-bold">{selectedReport.language} Code Review</h2>
                             </div>
                             <p className="text-white/80">{selectedReport.title}</p>
+                            {selectedReport.sub_title && <p className="text-white/60 text-sm mt-1">{selectedReport.sub_title}</p>}
 
                             <div className="flex gap-6 mt-6">
                                 <div className="flex items-center gap-2 text-sm font-medium">
@@ -204,11 +161,41 @@ const Reports = () => {
                     {/* Issues Found */}
                     <div className="bg-secondary/50 backdrop-blur border border-border rounded-2xl p-6">
                         <h3 className="text-text-primary font-bold mb-6">Issues Found</h3>
-                        <div className="space-y-3">
-                            <IssueItem label="Critical" count={selectedReport.issues.critical} color="text-red-500" bg="bg-red-500/10" border="border-red-500/20" />
-                            <IssueItem label="Warnings" count={selectedReport.issues.warnings} color="text-yellow-500" bg="bg-yellow-500/10" border="border-yellow-500/20" />
-                            <IssueItem label="Suggestions" count={selectedReport.issues.suggestions} color="text-blue-500" bg="bg-blue-500/10" border="border-blue-500/20" />
+                        <div className="space-y-3 mb-6">
+                            <IssueItem label="Critical" count={selectedReport.issues?.critical || 0} color="text-red-500" bg="bg-red-500/10" border="border-red-500/20" />
+                            <IssueItem label="Warnings" count={selectedReport.issues?.warnings || 0} color="text-yellow-500" bg="bg-yellow-500/10" border="border-yellow-500/20" />
+                            <IssueItem label="Suggestions" count={selectedReport.issues?.suggestions || 0} color="text-blue-500" bg="bg-blue-500/10" border="border-blue-500/20" />
                         </div>
+
+                        {/* Detailed Issues List */}
+                        {selectedReport?.issues?.list?.length > 0 && (
+                            <div className="space-y-3 pt-4 border-t border-white/5">
+                                <h4 className="text-text-secondary text-sm font-semibold mb-3">Detailed Breakdown</h4>
+                                {selectedReport.issues.list.map((issue, idx) => {
+                                    const severity = issue.severity?.toLowerCase() || 'minor';
+                                    const isCritical = severity === 'critical' || severity === 'major';
+                                    const isWarning = severity === 'warning' || severity === 'minor';
+
+                                    const styles = isCritical
+                                        ? { bg: 'bg-red-500/10', border: 'border-red-500/20', text: 'text-red-400', badge: 'border-red-500/30' }
+                                        : isWarning
+                                            ? { bg: 'bg-yellow-500/10', border: 'border-yellow-500/20', text: 'text-yellow-400', badge: 'border-yellow-500/30' }
+                                            : { bg: 'bg-blue-500/10', border: 'border-blue-500/20', text: 'text-blue-400', badge: 'border-blue-500/30' };
+
+                                    return (
+                                        <div key={idx} className={`p-4 rounded-xl border flex gap-3 ${styles.bg} ${styles.border}`}>
+                                            <div className={`mt-1 font-mono text-xs px-1.5 py-0.5 rounded border self-start shrink-0 ${styles.text} ${styles.badge}`}>
+                                                Line {issue.line}
+                                            </div>
+                                            <div>
+                                                <p className="text-text-primary text-sm font-medium leading-snug">{issue.message}</p>
+                                                <span className="text-xs text-text-secondary capitalize mt-1 block opacity-70">{severity} Issue</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -228,7 +215,7 @@ const Reports = () => {
                             </div>
                             <Terminal className="w-4 h-4 text-gray-500" />
                         </div>
-                        <div className="p-6 overflow-x-auto">
+                        <div className="p-6 overflow-x-auto max-h-[400px] overflow-y-auto custom-scrollbar">
                             <pre className="text-sm font-mono text-gray-100 leading-relaxed selection:bg-accent/30">
                                 <code>{selectedReport.snippet}</code>
                             </pre>
