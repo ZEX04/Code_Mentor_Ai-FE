@@ -9,10 +9,10 @@ const Submit = () => {
     const [problemCode, setProblemCode] = useState('');
     const [solutionCode, setSolutionCode] = useState('');
     const [lang, setLang] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
+    // NEW: isAnalyzing state for loading
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [error, setError] = useState('');
 
-    const { addReport } = useReports();
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
@@ -25,33 +25,25 @@ const Submit = () => {
             return;
         }
 
-        setIsLoading(true);
+        // NEW: Set loading state
+        setIsAnalyzing(true);
 
         try {
             console.log("Submitting code for evaluation..."); // Debug Log
 
-            // 1. API Call
-            const apiResponse = await evaluateCode(problemCode, solutionCode, lang);
-            console.log("API Response received:", apiResponse); // Debug Log
+            // 1. Direct API Call (No DB Fetch)
+            const analysisResult = await evaluateCode(problemCode, solutionCode, lang);
+            console.log("Submit: Raw API Response:", analysisResult);
+            console.log("Submit: API Response Keys:", Object.keys(analysisResult));
 
-            // 2. Format Data
-            const formattedReport = formatReportData(apiResponse);
-            console.log("Formatted Report:", formattedReport); // Debug Log
-
-            // 3. Update Context
-            addReport(formattedReport);
-            console.log("Report added to context via addReport"); // Debug Log
-
-            // 4. Navigate
-            setTimeout(() => {
-                navigate('/dashboard/reports');
-            }, 100); // Small delay to ensure state update might propagate (though strictly not needed with React 18 batching, good for debugging safety)
+            // 2. Navigate with State IMMEDIATELY
+            console.log("Submit: Navigating to /dashboard/reports with data...");
+            navigate('/dashboard/reports', { state: { data: analysisResult } });
 
         } catch (err) {
             console.error("Submission error:", err);
             setError(err.message || 'An error occurred during analysis');
-        } finally {
-            setIsLoading(false);
+            setIsAnalyzing(false); // Only stop loading on error, otherwise we navigate away
         }
     };
 
@@ -111,10 +103,10 @@ const Submit = () => {
                 {/* Submit Button */}
                 <button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={isAnalyzing}
                     className="w-full py-4 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold text-lg hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                 >
-                    {isLoading ? (
+                    {isAnalyzing ? (
                         <>
                             <Loader2 className="w-6 h-6 animate-spin" />
                             Analyzing...

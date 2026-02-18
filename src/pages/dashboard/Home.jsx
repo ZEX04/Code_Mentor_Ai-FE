@@ -1,20 +1,59 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Play, Upload, Target, ArrowRight, Rocket } from 'lucide-react';
+import { useReports } from '../../context/ReportContext';
+import { useNavigate } from 'react-router-dom';
 
 const DashboardHome = () => {
+    const { reports } = useReports();
+    const navigate = useNavigate();
+
+    // User Data
     const user = JSON.parse(localStorage.getItem('user'));
-    const userName = user?.user_metadata?.full_name || user?.email || 'Friend';
+    const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Friend';
+    const userRole = user?.user_metadata?.role || 'Developer'; // Default role
+
+    // Calculated Stats
+    const stats = useMemo(() => {
+        const projectsReviewed = reports.length;
+
+        // Calculate total lines of code across all reports
+        // If 'lines' column exists in DB use it, else count lines in code snippets
+        const totalLinesOfCode = reports.reduce((acc, report) => {
+            const snippetLines = report.snippet ? report.snippet.split('\n').length : 0;
+            const solutionLines = report.suggested_solution ? report.suggested_solution.split('\n').length : 0;
+            return acc + snippetLines + solutionLines;
+        }, 0);
+
+        return { projectsReviewed, totalLinesOfCode };
+    }, [reports]);
 
     return (
         <div className="max-w-7xl mx-auto space-y-8">
 
             {/* Welcome Banner */}
             <div className="relative rounded-3xl bg-gradient-to-r from-[#4F6EF7] via-[#9F5DFA] to-[#4F6EF7] p-10 shadow-lg overflow-hidden border border-white/10">
-                <div className="relative z-10">
-                    <h1 className="text-4xl font-bold text-white mb-2 drop-shadow-md">
-                        Hello , {userName} <span className="animate-wave inline-block">👋</span>
-                    </h1>
-                    <p className="text-2xl font-semibold text-white/90 drop-shadow-sm">Your Ai Mentor is ready .</p>
+                <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    <div>
+                        <h1 className="text-4xl font-bold text-white mb-2 drop-shadow-md">
+                            Hello, {userName} <span className="animate-wave inline-block">👋</span>
+                        </h1>
+                        <p className="text-xl font-semibold text-white/90 drop-shadow-sm">
+                            {userRole} • Ready to code?
+                        </p>
+                    </div>
+
+                    {/* Quick Stats in Banner */}
+                    <div className="flex gap-6 bg-white/10 p-4 rounded-2xl backdrop-blur-md border border-white/10">
+                        <div className="text-center">
+                            <p className="text-2xl font-bold text-white">{stats.projectsReviewed}</p>
+                            <p className="text-xs text-white/80 uppercase tracking-wider">Projects</p>
+                        </div>
+                        <div className="w-px bg-white/20 h-10 self-center"></div>
+                        <div className="text-center">
+                            <p className="text-2xl font-bold text-white">{stats.totalLinesOfCode}</p>
+                            <p className="text-xs text-white/80 uppercase tracking-wider">Lines of Code</p>
+                        </div>
+                    </div>
                 </div>
                 {/* Glossy overlay effect */}
                 <div className="absolute inset-0 bg-white/5 backdrop-blur-[1px]"></div>
@@ -42,7 +81,7 @@ const DashboardHome = () => {
                 </div>
 
                 <p className="mt-4 text-text-primary/90 font-medium relative z-10">
-                    Keep going! Next MileStone : <span className="text-text-primary font-bold">Advanced React patterns .</span>
+                    Keep going! Next Milestone : <span className="text-text-primary font-bold">Advanced React Patterns</span>
                 </p>
             </div>
 

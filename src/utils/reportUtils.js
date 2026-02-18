@@ -50,21 +50,40 @@ export const formatReportData = (apiResponse) => {
         icon: icon, // React Component
         iconName: icon === Zap ? 'Zap' : icon === Activity ? 'Activity' : icon === FileCode ? 'FileCode' : 'Terminal', // String Name
 
-        quality: {
+        // Mapped Metrics (User requested specifically 'metrics' with camelCase)
+        metrics: {
             readability: apiResponse.readability || 0,
             maintainability: apiResponse.maintainability || 0,
-            efficiency: apiResponse.efficiency || 0
+            efficiency: apiResponse.efficiency || 0,
+
+            // Explicit mapping for new fields with fallbacks
+            problemSolving: apiResponse.problem_solving || apiResponse.problemSolving || 0,
+            edgeCases: apiResponse.edge_cases_handling || apiResponse.edge_cases || apiResponse.edgeCases || 0,
+            correctness: apiResponse.correctness || 0
         },
+
+        // Keep 'quality' for backward compatibility if needed, or just rely on metrics. 
+        // We'll update UI to use 'metrics'.
+
         issues: {
             critical: apiResponse.critical || 0,
-            warnings: apiResponse.warning || 0, // ممتاز: ربطت warning المفرد بـ warnings الجمع
+            warnings: apiResponse.warning || 0,
             suggestions: apiResponse.suggestions || 0,
-            list: apiResponse.issues || [] // وهنا الـ JSON Array
+            list: (apiResponse.issues || []).map(issue => ({
+                line: issue.line,
+                severity: issue.severity,
+                message: issue.message
+            }))
         },
-        snippet: apiResponse.ai_code || apiResponse.problem || '',
+        snippet: apiResponse.problem || '', // Original code
+        suggested_solution: apiResponse.ai_code || '',
+        diff_view: apiResponse.corrected_code || '',
         recommendations: apiResponse.recommendations || [],
         search_topics: apiResponse.search_topics || []
     };
+
+    console.log("FormatReportData: Mapped Metrics:", result.metrics);
+    return result;
 };
 
 export const getIconByName = (name) => {

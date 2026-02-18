@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Sparkles, Code, FileText, Send, ChevronDown, Check } from 'lucide-react';
+import { supabase } from '../../lib/supabaseClient';
 
 const Chat = () => {
     const [problem, setProblem] = useState('');
@@ -25,8 +26,9 @@ const Chat = () => {
         }
 
         try {
-            const token = localStorage.getItem('token');
-            if (!token) {
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (!session) {
                 alert('You must be logged in to submit.');
                 return;
             }
@@ -35,7 +37,7 @@ const Chat = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${session.access_token}`
                 },
                 body: JSON.stringify({
                     problem_code: problem,

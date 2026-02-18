@@ -1,21 +1,92 @@
-import React from 'react';
-import { Mail, MapPin, Link as LinkIcon, Twitter, Github, Linkedin, Camera, Code, Hash, Calendar, Trophy } from 'lucide-react';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Mail, MapPin, Link as LinkIcon, Twitter, Github, Linkedin, Camera, Code, Hash, Calendar, Trophy, Loader2 } from 'lucide-react';
+import { useReports } from '../../context/ReportContext';
+import { supabase } from '../../lib/supabaseClient';
 
 const Profile = () => {
-    // Stats from Home.jsx
-    const stats = [
-        { label: "Projects Reviewed", value: "24", icon: Code, color: "bg-blue-500" },
-        { label: "Lines of Code", value: "15.2K", icon: Hash, color: "bg-purple-500" },
-        { label: "Learning Streak", value: "15 days", icon: Calendar, color: "bg-orange-500" },
-        { label: "Skills Mastered", value: "8", icon: Trophy, color: "bg-green-500" },
-    ];
+    const { reports } = useReports();
+    const [loading, setLoading] = useState(true);
+    const [profile, setProfile] = useState(null);
 
+    // 1. Get User and Calculate Stats
+    const user = JSON.parse(localStorage.getItem('user'));
+
+    // Stats Calculation
+    const statsResult = useMemo(() => {
+        const projectsReviewed = reports.length;
+        const totalLines = reports.reduce((acc, r) => {
+            const s = r.snippet ? r.snippet.split('\n').length : 0;
+            const sol = r.suggested_solution ? r.suggested_solution.split('\n').length : 0;
+            return acc + s + sol;
+        }, 0);
+
+        // Format K for lines (e.g. 1500 -> 1.5K)
+        const formatLines = (num) => {
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+            return num;
+        };
+
+        return {
+            reviewed: projectsReviewed,
+            lines: formatLines(totalLines)
+        };
+    }, [reports]);
+
+    // 2. Fetch Profile Data
+    useEffect(() => {
+        const fetchProfile = async () => {
+            if (!user) return;
+            try {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single();
+
+                if (data) {
+                    setProfile(data);
+                }
+            } catch (err) {
+                console.error("Error fetching profile:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchProfile();
+    }, [user?.id]); // Warn: Check dependency
+
+    const displayUser = {
+        name: profile?.full_name || user?.user_metadata?.full_name || 'CodeMentor User',
+        role: profile?.role || user?.user_metadata?.role || 'Full Stack Developer',
+        email: profile?.email || user?.email,
+        location: profile?.location || 'Global',
+        website: profile?.website || 'portfolio.dev',
+        avatar: profile?.avatar_url || null
+    };
+
+    // Static Data (Placeholders until DB schema is live)
     const skills = [
         { name: "JavaScript", progress: 90, color: "bg-blue-400" },
         { name: "React", progress: 85, color: "bg-cyan-400" },
         { name: "Python", progress: 75, color: "bg-yellow-400" },
         { name: "CSS", progress: 83, color: "bg-pink-400" },
         { name: "Node.js", progress: 70, color: "bg-green-400" },
+    ];
+
+    if (loading) {
+        return (
+            <div className="flex h-full w-full items-center justify-center p-20">
+                <Loader2 className="w-8 h-8 animate-spin text-accent" />
+            </div>
+        );
+    }
+
+    const stats = [
+        { label: "Projects Reviewed", value: statsResult.reviewed, icon: Code, color: "bg-blue-500" },
+        { label: "Lines of Code", value: statsResult.lines, icon: Hash, color: "bg-purple-500" },
+        { label: "Learning Streak", value: `${profile?.current_streak || 0} days`, icon: Calendar, color: "bg-orange-500" },
+        { label: "Skills Mastered", value: "5", icon: Trophy, color: "bg-green-500" }, // Mock for now
     ];
 
     return (
@@ -33,8 +104,11 @@ const Profile = () => {
                     <div className="relative">
                         <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-accent to-purple p-[2px]">
                             <div className="w-full h-full bg-secondary rounded-2xl flex items-center justify-center overflow-hidden">
-                                {/* Placeholder Avatar Img or Icon */}
-                                <span className="text-4xl">👋</span>
+                                {displayUser.avatar ? (
+                                    <img src={displayUser.avatar} alt="Profile" className="w-full h-full object-cover" />
+                                ) : (
+                                    <span className="text-4xl">👋</span>
+                                )}
                             </div>
                         </div>
                         <button className="absolute -bottom-2 -right-2 p-1.5 bg-primary rounded-full border border-border text-text-primary hover:bg-accent hover:text-primary transition-colors">
@@ -43,8 +117,8 @@ const Profile = () => {
                     </div>
 
                     <div>
-                        <h1 className="text-3xl font-bold text-text-primary">Ebram Emad</h1>
-                        <p className="text-text-secondary">Full Stack Developer • AI Enthusiast</p>
+                        <h1 className="text-3xl font-bold text-text-primary">{displayUser.name}</h1>
+                        <p className="text-text-secondary">{displayUser.role} • AI Enthusiast</p>
                     </div>
                 </div>
 
@@ -100,13 +174,13 @@ const Profile = () => {
                             <h3 className="text-lg font-bold text-text-primary mb-4">About Me</h3>
                             <div className="space-y-3">
                                 <div className="flex items-center gap-3 text-sm text-text-secondary">
-                                    <MapPin className="w-4 h-4 text-accent" /> Cairo, Egypt
+                                    <MapPin className="w-4 h-4 text-accent" /> {displayUser.location}
                                 </div>
                                 <div className="flex items-center gap-3 text-sm text-text-secondary">
-                                    <Mail className="w-4 h-4 text-accent" /> ebram@example.com
+                                    <Mail className="w-4 h-4 text-accent" /> {displayUser.email}
                                 </div>
                                 <div className="flex items-center gap-3 text-sm text-text-secondary">
-                                    <LinkIcon className="w-4 h-4 text-accent" /> ebram.dev
+                                    <LinkIcon className="w-4 h-4 text-accent" /> {displayUser.website}
                                 </div>
                             </div>
                         </div>

@@ -1,14 +1,16 @@
 import React from 'react';
-import { NavLink, Outlet, Link } from 'react-router-dom';
+import { NavLink, Outlet, Link, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Map, FileText, Settings, Plus, LogOut, Bell, Search, Menu, Loader2 } from 'lucide-react';
 // Minimal avatar placeholder or icon
 import { User } from 'lucide-react';
 import { useReports } from '../context/ReportContext';
+import { supabase } from '../lib/supabaseClient';
 
 const DashboardLayout = () => {
     const [showNotifications, setShowNotifications] = React.useState(false);
     const [user, setUser] = React.useState(null);
     const { isLoading } = useReports();
+    const navigate = useNavigate();
 
     React.useEffect(() => {
         const storedUser = localStorage.getItem('user');
@@ -20,6 +22,22 @@ const DashboardLayout = () => {
             }
         }
     }, []);
+
+    const handleSignOut = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        try {
+            await supabase.auth.signOut();
+            localStorage.removeItem('user');
+            localStorage.removeItem('sb-access-token'); // Clear Supabase token if stored manually
+            localStorage.removeItem('sb-refresh-token');
+            navigate('/');
+        } catch (error) {
+            console.error("Error signing out:", error);
+            navigate('/');
+        }
+    };
 
     if (isLoading) {
         return (
@@ -44,9 +62,10 @@ const DashboardLayout = () => {
             {/* Sidebar */}
             <aside className="w-64 bg-secondary border-r border-white/5 flex flex-col hidden md:flex">
                 <div className="p-6 border-b border-white/5">
-                    <Link to="/">
-                        <h1 className="text-xl font-bold text-accent hover:opacity-80 transition-opacity">CodeMentor AI</h1>
-                    </Link>
+                    {/* Logo - User requested "Do Nothing" if logged in */}
+                    <div className="cursor-default select-none">
+                        <h1 className="text-xl font-bold text-accent">CodeMentor AI</h1>
+                    </div>
                 </div>
 
                 <div className="p-4">
@@ -81,7 +100,10 @@ const DashboardLayout = () => {
 
                         {/* Logout Tooltip/Menu (Simple) */}
                         <div className="absolute bottom-full left-0 w-full bg-secondary border border-white/10 rounded-lg p-2 mb-2 hidden group-hover:block z-50">
-                            <button className="w-full text-left text-sm p-2 hover:bg-white/5 rounded text-red-400 flex items-center gap-2">
+                            <button
+                                onClick={handleSignOut}
+                                className="w-full text-left text-sm p-2 hover:bg-white/5 rounded text-red-400 flex items-center gap-2"
+                            >
                                 <LogOut className="w-4 h-4" /> Sign Out
                             </button>
                         </div>

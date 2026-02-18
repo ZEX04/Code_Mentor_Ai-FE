@@ -34,54 +34,32 @@ const SignupForm = () => {
         setLoading(true);
 
         try {
-            const response = await fetch('https://rqqdmxvhhrxdghnhefmp.supabase.co/auth/v1/signup', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'apikey': 'sb_publishable_uFkTNQBEEI5_cfWrKmSseQ_76imNDzP'
-                },
-                body: JSON.stringify({
-                    email: emailState,
-                    password: passwordState,
+            const { data, error } = await supabase.auth.signUp({
+                email: emailState,
+                password: passwordState,
+                options: {
                     data: {
-                        full_name: nameState
-                    }
-                })
+                        full_name: nameState,
+                    },
+                },
             });
 
-            const data = await response.json();
-            console.log('Signup Response:', data, response.ok);
+            if (error) throw error;
 
-            if (!response.ok) {
-                // Handle Supabase/GoTrue error formats
-                throw new Error(data.msg || data.error_description || data.message || 'Signup failed');
-            }
-
-            if (data.access_token) {
-                // Scenario 1: Email confirmation disabled (Session exists)
-                // Action 1: Save the token
-                localStorage.setItem('token', data.access_token);
-                // Action 2: Save user data
-                localStorage.setItem('user', JSON.stringify(data.user));
-                // Action 3: Redirect immediately
+            if (data.session) {
+                // Session exists (Email confirmation disabled or auto-signed in)
                 navigate('/dashboard');
-            } else if (data.user && !data.access_token) {
-                // Scenario 2: Email confirmation enabled (Session is null)
+            } else if (data.user) {
+                // User created but no session (Email confirmation required)
                 setSuccessMessage('Account created! Please check your email to confirm your account.');
-                setLoading(false);
-                // Do NOT navigate
-            } else {
-                // Fallback for unexpected success state
-                setSuccessMessage('Account created! Please check your email.');
-                setLoading(false);
             }
 
         } catch (err) {
             console.error('Signup error:', err);
             setError(err.message);
+        } finally {
             setLoading(false);
         }
-        // remove finally block because we handle loading state manually in success cases to prevent flash
     };
 
     return (

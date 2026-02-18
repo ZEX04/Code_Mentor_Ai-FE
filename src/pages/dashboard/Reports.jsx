@@ -1,23 +1,84 @@
-import React, { useState, useEffect } from 'react';
-import { Zap, FileCode, Activity, Eye, Calendar, Code, CheckCircle, AlertTriangle, XCircle, Terminal, Lightbulb, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Zap, FileCode, Activity, Eye, Calendar, Code, CheckCircle, AlertTriangle, XCircle, Terminal, Lightbulb, ChevronRight, FileDiff } from 'lucide-react';
 import { useReports } from '../../context/ReportContext';
-import { getIconByName } from '../../utils/reportUtils';
-import { useNavigate } from 'react-router-dom';
+import { getIconByName, formatReportData } from '../../utils/reportUtils';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const Reports = () => {
-    const { reports, isLoading } = useReports();
+    const { reports, isLoading, addReport, refreshReports } = useReports(); // Added refreshReports
     const [selectedReportId, setSelectedReportId] = useState(null);
+    const [activeTab, setActiveTab] = useState('source');
     const navigate = useNavigate();
+    const location = useLocation();
 
-    useEffect(() => {
-        if (reports && reports.length > 0) {
-            if (!selectedReportId) {
-                setSelectedReportId(reports[0].id);
+    // 1. Synchronously Derive Local State on First Render
+    // This runs BEFORE any useEffect, preventing the "Loading" flash.
+    const directData = location.state?.data;
+
+    const directReport = useMemo(() => {
+        if (directData) {
+            console.log("Reports: Processing direct data immediately:", directData);
+            console.log("Reports: Direct data keys:", Object.keys(directData));
+            try {
+                const formatted = formatReportData(directData);
+                console.log("Reports: Formatted data:", formatted);
+                console.log("Mapped Metrics:", formatted.metrics); // User requested specific log
+                return formatted;
+            } catch (err) {
+                console.error("Reports: Error formatting data:", err);
+                return null;
             }
         }
-    }, [reports, selectedReportId]);
+        return null;
+    }, [directData]);
 
-    if (isLoading) {
+    // Local state to hold the report (initially directReport, can be cleared if user navigates away within the page)
+    // We use a function in useState to lazily initialize correctly if needed, but here simple assignment is fine 
+    // since directReport is memoized.
+    // However, if we navigate AWAY and BACK, directReport might still be there if location.state persists?
+    // React Router's location.state persists on refresh.
+    // So this is good.
+    const [localReport, setLocalReport] = useState(directReport);
+
+    // 2. Silent Sync & Persistence
+    useEffect(() => {
+        // If we have direct data, persist it (optimistically added to context already, but addReport now persists to DB)
+        if (directData) {
+            console.log("Reports: Persisting direct data...");
+            addReport(directData);
+        }
+
+        // ALWAYS trigger a silent refresh from DB to ensure "Always Fresh"
+        console.log("Reports: Triggering Silent Sync...");
+        if (refreshReports) refreshReports();
+
+    }, [directData, addReport, refreshReports]);
+
+    // 2. Determine which report to show
+    // Priority: Local Report -> Selected Report -> First Report
+    const displayReport = localReport || reports.find(r => r.id === selectedReportId) || reports[0];
+
+    // Effect: If we don't have a local report, select the first one from context when it loads
+    useEffect(() => {
+        if (!localReport && reports && reports.length > 0 && !selectedReportId) {
+            setSelectedReportId(reports[0].id);
+        }
+    }, [reports, selectedReportId, localReport]);
+
+    // Handle sidebar click
+    const handleReportClick = (id) => {
+        console.log("Reports: Sidebar clicked, switching to report ID:", id);
+        setLocalReport(null); // Clear the direct view to switch to history mode
+        setSelectedReportId(id);
+    };
+
+    // 3. Loading Logic - BYPASS if we have local data!
+    const hasDirectData = !!localReport;
+    const showLoading = isLoading && !hasDirectData && (!reports || reports.length === 0);
+
+    console.log("Reports Render State:", { hasDirectData, isLoading, showLoading, displayReportID: displayReport?.id });
+
+    if (showLoading) {
         return (
             <div className="flex items-center justify-center h-full">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -25,7 +86,8 @@ const Reports = () => {
         );
     }
 
-    if (!reports || reports.length === 0) {
+    if (!reports && !localReport) {
+        // Fallback if truly nothing
         return (
             <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
                 <div className="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center">
@@ -37,17 +99,20 @@ const Reports = () => {
                         Submit your code for analysis to generate your first report.
                     </p>
                 </div>
-                <button
-                    onClick={() => navigate('/dashboard')}
-                    className="px-6 py-3 rounded-xl bg-primary hover:bg-primary/80 text-white font-semibold transition-colors"
-                >
-                    Go to Dashboard
-                </button>
+            </div>
+        )
+    }
+
+    // Safely access displayReport props
+    if (!displayReport) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <div className="text-text-secondary">Select a report to view details</div>
             </div>
         );
     }
 
-    const selectedReport = reports.find(r => r.id === selectedReportId) || reports[0];
+    const selectedReport = displayReport;
     const SelectedIcon = getIconByName(selectedReport.iconName);
 
     return (
@@ -66,7 +131,7 @@ const Reports = () => {
                         return (
                             <div
                                 key={report.id}
-                                onClick={() => setSelectedReportId(report.id)}
+                                onClick={() => handleReportClick(report.id)}
                                 className={`group relative p-4 rounded-xl cursor-pointer transition-all duration-300 overflow-hidden bg-secondary border hover:bg-text-primary/5 ${selectedReportId === report.id ? 'border-border' : 'border-transparent'}`}
                             >
                                 {/* Bottom Gradient Border */}
@@ -152,9 +217,12 @@ const Reports = () => {
                     <div className="bg-secondary/50 backdrop-blur border border-border rounded-2xl p-6">
                         <h3 className="text-text-primary font-bold mb-6">Code Quality</h3>
                         <div className="space-y-6">
-                            <SkillBar label="Readability" percentage={selectedReport.quality.readability} color="bg-blue-600" />
-                            <SkillBar label="Maintainability" percentage={selectedReport.quality.maintainability} color="bg-purple" />
-                            <SkillBar label="Efficiency" percentage={selectedReport.quality.efficiency} color="bg-accent" />
+                            <SkillBar label="Readability" percentage={selectedReport.metrics?.readability || 0} color="bg-blue-600" />
+                            <SkillBar label="Maintainability" percentage={selectedReport.metrics?.maintainability || 0} color="bg-purple-600" />
+                            <SkillBar label="Efficiency" percentage={selectedReport.metrics?.efficiency || 0} color="bg-teal-600" />
+                            <SkillBar label="Problem Solving" percentage={selectedReport.metrics?.problemSolving || 0} color="bg-orange-600" />
+                            <SkillBar label="Edge Cases" percentage={selectedReport.metrics?.edgeCases || 0} color="bg-red-600" />
+                            <SkillBar label="Correctness" percentage={selectedReport.metrics?.correctness || 0} color="bg-green-600" />
                         </div>
                     </div>
 
@@ -201,7 +269,31 @@ const Reports = () => {
 
                 {/* Code Snippet Section */}
                 <div className="bg-secondary/50 backdrop-blur border border-border rounded-2xl p-6">
-                    <h3 className="text-text-primary font-bold mb-6">Code Snippet</h3>
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-text-primary font-bold">Code Analysis</h3>
+
+                        {/* Tabs */}
+                        <div className="flex p-1 bg-black/20 rounded-lg">
+                            <button
+                                onClick={() => setActiveTab('source')}
+                                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'source' ? 'bg-secondary text-text-primary shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
+                            >
+                                Your Code
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('suggested')}
+                                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'suggested' ? 'bg-secondary text-text-primary shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
+                            >
+                                Suggested
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('diff')}
+                                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'diff' ? 'bg-secondary text-text-primary shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
+                            >
+                                Diff View
+                            </button>
+                        </div>
+                    </div>
 
                     <div className="bg-[#0a1128] rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
                         <div className="bg-[#1a2540] px-4 py-3 flex items-center justify-between border-b border-white/5">
@@ -213,11 +305,22 @@ const Reports = () => {
                                 </div>
                                 <span className="text-xs font-mono text-gray-400 ml-2 uppercase tracking-widest">{selectedReport.language}</span>
                             </div>
-                            <Terminal className="w-4 h-4 text-gray-500" />
+                            <div className="flex items-center gap-3">
+                                <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">
+                                    {activeTab === 'source' ? 'Original Source' : activeTab === 'suggested' ? 'Optimized Solution' : 'Diff Comparison'}
+                                </span>
+                                {activeTab === 'source' ? <Terminal className="w-4 h-4 text-gray-500" /> :
+                                    activeTab === 'suggested' ? <Zap className="w-4 h-4 text-yellow-500" /> :
+                                        <FileDiff className="w-4 h-4 text-blue-500" />}
+                            </div>
                         </div>
                         <div className="p-6 overflow-x-auto max-h-[400px] overflow-y-auto custom-scrollbar">
                             <pre className="text-sm font-mono text-gray-100 leading-relaxed selection:bg-accent/30">
-                                <code>{selectedReport.snippet}</code>
+                                <code>
+                                    {activeTab === 'source' ? selectedReport.snippet :
+                                        activeTab === 'suggested' ? selectedReport.suggested_solution :
+                                            selectedReport.diff_view}
+                                </code>
                             </pre>
                         </div>
                     </div>
@@ -227,7 +330,7 @@ const Reports = () => {
                 <div className="bg-secondary/50 backdrop-blur border border-border rounded-2xl p-6">
                     <h3 className="text-text-primary font-bold mb-6">Recommendations</h3>
                     <div className="space-y-3">
-                        {selectedReport.recommendations.map((rec, index) => (
+                        {selectedReport.recommendations && selectedReport.recommendations.map((rec, index) => (
                             <div key={index} className="p-4 bg-primary/50 border border-white/5 rounded-xl flex items-start gap-3 hover:border-white/10 transition-colors">
                                 <div className="w-6 h-6 rounded-full bg-blue-500 flex-shrink-0 flex items-center justify-center text-xs font-bold text-white mt-0.5">
                                     {index + 1}
