@@ -1,13 +1,18 @@
 import React, { useState } from 'react';
-import { Sparkles, Code, FileText, Send, ChevronDown, Check } from 'lucide-react';
-import { supabase } from '../../lib/supabaseClient';
+import { Sparkles, Code, FileText, Send, ChevronDown, Check, Loader2 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { fetchWithRetry } from '../../utils/apiRetry';
 
 const Chat = () => {
+    const { session } = useAuth();
+    const navigate = useNavigate();
     const [problem, setProblem] = useState('');
     const [solution, setSolution] = useState('');
     const [language, setLanguage] = useState('Auto Detect');
     const [showToast, setShowToast] = useState(false);
     const [isLangOpen, setIsLangOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     const languages = [
         'Auto Detect',
@@ -26,14 +31,14 @@ const Chat = () => {
         }
 
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-
             if (!session) {
                 alert('You must be logged in to submit.');
                 return;
             }
 
-            const response = await fetch('https://rqqdmxvhhrxdghnhefmp.supabase.co/functions/v1/code_submit', {
+            setIsLoading(true);
+
+            const response = await fetchWithRetry('https://rqqdmxvhhrxdghnhefmp.supabase.co/functions/v1/code_submit', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -50,11 +55,18 @@ const Chat = () => {
                 throw new Error(errorData.message || errorData.error || 'Submission failed');
             }
 
-            setShowToast(true);
-            setTimeout(() => setShowToast(false), 3000); // Hide after 3 seconds
+            const data = await response.json().catch(() => null);
+            const enhancedData = {
+                ...data,
+                submitted_problem: problem,
+                submitted_solution: solution
+            };
+            navigate('/dashboard/reports', { state: { data: enhancedData } });
         } catch (error) {
             console.error('Submission error:', error);
             alert(`Error: ${error.message}`);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -189,10 +201,20 @@ const Chat = () => {
             <div className="flex justify-center pb-4">
                 <button
                     onClick={handleSubmit}
-                    className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl text-white font-bold shadow-lg hover:shadow-purple-500/25 hover:scale-105 transition-all duration-300 group"
+                    disabled={isLoading}
+                    className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl text-white font-bold shadow-lg hover:shadow-purple-500/25 hover:scale-105 transition-all duration-300 group disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
-                    <span>Submit to AI Mentor</span>
-                    <Send className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    {isLoading ? (
+                        <>
+                            <span>Analyzing...</span>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                        </>
+                    ) : (
+                        <>
+                            <span>Submit to AI Mentor</span>
+                            <Send className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        </>
+                    )}
                 </button>
             </div>
 

@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useReports } from '../../context/ReportContext';
-import { evaluateCode } from '../../services/api';
-import { formatReportData } from '../../utils/reportUtils';
+import { useAuth } from '../../context/AuthContext';
 import { Upload, Play, Loader2, AlertCircle } from 'lucide-react';
+import { fetchWithRetry } from '../../utils/apiRetry';
 
 const Submit = () => {
+    const { session } = useAuth();
     const [problemCode, setProblemCode] = useState('');
     const [solutionCode, setSolutionCode] = useState('');
     const [lang, setLang] = useState('');
-    // NEW: isAnalyzing state for loading
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    // NEW: isLoading state to manage submission process
+    const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
     const navigate = useNavigate();
@@ -25,25 +26,55 @@ const Submit = () => {
             return;
         }
 
+        if (!session) {
+            setError('You must be logged in to submit.');
+            return;
+        }
+
         // NEW: Set loading state
-        setIsAnalyzing(true);
+        setIsLoading(true);
 
         try {
-            console.log("Submitting code for evaluation..."); // Debug Log
+            console.log("Submitting code to AI Mentor Edge Function...");
 
-            // 1. Direct API Call (No DB Fetch)
-            const analysisResult = await evaluateCode(problemCode, solutionCode, lang);
-            console.log("Submit: Raw API Response:", analysisResult);
-            console.log("Submit: API Response Keys:", Object.keys(analysisResult));
+            const response = await fetchWithRetry('https://rqqdmxvhhrxdghnhefmp.supabase.co/functions/v1/code_submit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({
+                    problem_code: problemCode,
+                    solution_code: solutionCode,
+                    lang: lang
+                })
+            });
 
-            // 2. Navigate with State IMMEDIATELY
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || errorData.error || 'Submission failed');
+            }
+
+            const analysisResult = await response.json().catch(() => null);
+            console.log("Submit: Edge Function Response:", analysisResult);
+
+            // 2. Append submitted data
+            const enhancedResult = {
+                ...analysisResult,
+                submitted_problem: problemCode,
+                submitted_solution: solutionCode,
+                lang: lang
+            };
+
+            // 3. Navigate with State IMMEDIATELY
             console.log("Submit: Navigating to /dashboard/reports with data...");
-            navigate('/dashboard/reports', { state: { data: analysisResult } });
+            navigate('/dashboard/reports', { state: { data: enhancedResult } });
 
         } catch (err) {
             console.error("Submission error:", err);
             setError(err.message || 'An error occurred during analysis');
-            setIsAnalyzing(false); // Only stop loading on error, otherwise we navigate away
+        } finally {
+            setIsLoading(false); // Stop loading when complete
         }
     };
 
@@ -103,10 +134,10 @@ const Submit = () => {
                 {/* Submit Button */}
                 <button
                     type="submit"
-                    disabled={isAnalyzing}
+                    disabled={isLoading}
                     className="w-full py-4 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold text-lg hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                 >
-                    {isAnalyzing ? (
+                    {isLoading ? (
                         <>
                             <Loader2 className="w-6 h-6 animate-spin" />
                             Analyzing...

@@ -6,40 +6,28 @@ import { User } from 'lucide-react';
 import { useReports } from '../context/ReportContext';
 import { supabase } from '../lib/supabaseClient';
 
+import { useAuth } from '../context/AuthContext';
+
 const DashboardLayout = () => {
     const [showNotifications, setShowNotifications] = React.useState(false);
-    const [user, setUser] = React.useState(null);
+    const { user, signOut, loading: authLoading } = useAuth();
     const { isLoading } = useReports();
     const navigate = useNavigate();
 
-    React.useEffect(() => {
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-            try {
-                setUser(JSON.parse(storedUser));
-            } catch (e) {
-                console.error("Failed to parse user from local storage", e);
-            }
-        }
-    }, []);
+    // Remove the explicit localStorage read inside useEffect
+    // The AuthContext handles state now
+
+    // Remove unused effect
 
     const handleSignOut = async (e) => {
         e.preventDefault();
         e.stopPropagation();
 
-        try {
-            await supabase.auth.signOut();
-            localStorage.removeItem('user');
-            localStorage.removeItem('sb-access-token'); // Clear Supabase token if stored manually
-            localStorage.removeItem('sb-refresh-token');
-            navigate('/');
-        } catch (error) {
-            console.error("Error signing out:", error);
-            navigate('/');
-        }
+        await signOut();
+        navigate('/');
     };
 
-    if (isLoading) {
+    if (authLoading || isLoading) {
         return (
             <div className="flex h-screen w-screen items-center justify-center bg-primary text-white">
                 <div className="flex flex-col items-center gap-4">

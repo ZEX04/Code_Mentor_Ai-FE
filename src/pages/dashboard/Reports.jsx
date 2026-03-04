@@ -46,13 +46,14 @@ const Reports = () => {
         if (directData) {
             console.log("Reports: Persisting direct data...");
             addReport(directData);
+            // Clear location state through React Router so it doesn't trigger again
+            navigate(location.pathname, { replace: true, state: {} });
         }
 
-        // ALWAYS trigger a silent refresh from DB to ensure "Always Fresh"
-        console.log("Reports: Triggering Silent Sync...");
-        if (refreshReports) refreshReports();
-
-    }, [directData, addReport, refreshReports]);
+        // We removed the automatic 'refreshReports()' call here to prevent 
+        // the app from repeatedly fetching data every time the user navigates 
+        // back to the Reports page. ReportContext already handles the initial fetch.
+    }, [directData, addReport]);
 
     // 2. Determine which report to show
     // Priority: Local Report -> Selected Report -> First Report
@@ -287,10 +288,10 @@ const Reports = () => {
                                 Suggested
                             </button>
                             <button
-                                onClick={() => setActiveTab('diff')}
-                                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'diff' ? 'bg-secondary text-text-primary shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
+                                onClick={() => setActiveTab('problem')}
+                                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'problem' ? 'bg-secondary text-text-primary shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
                             >
-                                Diff View
+                                Problem
                             </button>
                         </div>
                     </div>
@@ -307,19 +308,19 @@ const Reports = () => {
                             </div>
                             <div className="flex items-center gap-3">
                                 <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">
-                                    {activeTab === 'source' ? 'Original Source' : activeTab === 'suggested' ? 'Optimized Solution' : 'Diff Comparison'}
+                                    {activeTab === 'source' ? 'Original Source' : activeTab === 'suggested' ? 'Optimized Solution' : 'Problem Statement'}
                                 </span>
                                 {activeTab === 'source' ? <Terminal className="w-4 h-4 text-gray-500" /> :
                                     activeTab === 'suggested' ? <Zap className="w-4 h-4 text-yellow-500" /> :
-                                        <FileDiff className="w-4 h-4 text-blue-500" />}
+                                        <Activity className="w-4 h-4 text-blue-500" />}
                             </div>
                         </div>
                         <div className="p-6 overflow-x-auto max-h-[400px] overflow-y-auto custom-scrollbar">
-                            <pre className="text-sm font-mono text-gray-100 leading-relaxed selection:bg-accent/30">
+                            <pre className="text-sm font-mono text-gray-100 leading-relaxed selection:bg-accent/30 whitespace-pre-wrap">
                                 <code>
                                     {activeTab === 'source' ? selectedReport.snippet :
-                                        activeTab === 'suggested' ? selectedReport.suggested_solution :
-                                            selectedReport.diff_view}
+                                        activeTab === 'suggested' ? (selectedReport.diff_view || selectedReport.suggested_solution) :
+                                            selectedReport.problem_desc}
                                 </code>
                             </pre>
                         </div>

@@ -1,15 +1,16 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Mail, MapPin, Link as LinkIcon, Twitter, Github, Linkedin, Camera, Code, Hash, Calendar, Trophy, Loader2 } from 'lucide-react';
 import { useReports } from '../../context/ReportContext';
+import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
 
 const Profile = () => {
     const { reports } = useReports();
+    const { user, loading: authLoading } = useAuth();
     const [loading, setLoading] = useState(true);
     const [profile, setProfile] = useState(null);
 
     // 1. Get User and Calculate Stats
-    const user = JSON.parse(localStorage.getItem('user'));
 
     // Stats Calculation
     const statsResult = useMemo(() => {
@@ -74,7 +75,7 @@ const Profile = () => {
         { name: "Node.js", progress: 70, color: "bg-green-400" },
     ];
 
-    if (loading) {
+    if (loading || authLoading) {
         return (
             <div className="flex h-full w-full items-center justify-center p-20">
                 <Loader2 className="w-8 h-8 animate-spin text-accent" />

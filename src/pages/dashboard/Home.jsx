@@ -1,14 +1,15 @@
 import React, { useMemo } from 'react';
 import { Play, Upload, Target, ArrowRight, Rocket } from 'lucide-react';
 import { useReports } from '../../context/ReportContext';
+import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 const DashboardHome = () => {
     const { reports } = useReports();
+    const { user } = useAuth();
     const navigate = useNavigate();
 
     // User Data
-    const user = JSON.parse(localStorage.getItem('user'));
     const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Friend';
     const userRole = user?.user_metadata?.role || 'Developer'; // Default role
 

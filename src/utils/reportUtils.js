@@ -37,7 +37,7 @@ export const formatReportData = (apiResponse) => {
         icon = Terminal;
     }
 
-    return {
+    const formatted = {
         id: id,
         // هنا ربطنا الأعمدة بذكاء
         language: apiResponse.lang || 'Unknown',
@@ -75,15 +75,16 @@ export const formatReportData = (apiResponse) => {
                 message: issue.message
             }))
         },
-        snippet: apiResponse.problem || '', // Original code
-        suggested_solution: apiResponse.ai_code || '',
-        diff_view: apiResponse.corrected_code || '',
+        snippet: apiResponse.submitted_solution || apiResponse.solution_code || apiResponse.code || '', // User's code
+        problem_desc: apiResponse.submitted_problem || apiResponse.problem_code || apiResponse.problem || '', // The problem description
+        suggested_solution: apiResponse.corrected_code || apiResponse.ai_code || '',
+        diff_view: apiResponse.diff_view || apiResponse.corrected_code || '',
         recommendations: apiResponse.recommendations || [],
-        search_topics: apiResponse.search_topics || []
+        search_topics: apiResponse.search_topics || [],
+        roadmap: apiResponse.roadmap || null
     };
 
-    console.log("FormatReportData: Mapped Metrics:", result.metrics);
-    return result;
+    return formatted;
 };
 
 export const getIconByName = (name) => {
