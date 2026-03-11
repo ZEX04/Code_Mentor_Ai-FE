@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Play, Upload, Target, ArrowRight, Rocket } from 'lucide-react';
+import { Play, History, Target, ArrowRight, Rocket } from 'lucide-react';
 import { useReports } from '../../context/ReportContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -25,7 +25,12 @@ const DashboardHome = () => {
             return acc + snippetLines + solutionLines;
         }, 0);
 
-        return { projectsReviewed, totalLinesOfCode };
+        // Calculate average score across all reports
+        const averageScore = projectsReviewed > 0
+            ? Math.round(reports.reduce((acc, report) => acc + (report.score || 0), 0) / projectsReviewed)
+            : 0;
+
+        return { projectsReviewed, totalLinesOfCode, averageScore };
     }, [reports]);
 
     return (
@@ -67,7 +72,7 @@ const DashboardHome = () => {
                 <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none"></div>
 
                 <div className="flex justify-between items-center mb-4 relative z-10">
-                    <h3 className="text-lg font-bold text-text-primary">Front End Track - 65% Complete</h3>
+                    <h3 className="text-lg font-bold text-text-primary">Overall Code Understanding - {stats.averageScore}% Complete</h3>
                     <Rocket className="w-6 h-6 text-accent animate-pulse" />
                 </div>
 
@@ -75,53 +80,54 @@ const DashboardHome = () => {
                 <div className="w-full h-8 bg-primary/50 backdrop-blur-sm rounded-full p-1 relative z-10 border border-border">
                     <div
                         className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_20px_rgba(100,255,218,0.5)] relative transition-all duration-1000 ease-out"
-                        style={{ width: '65%' }}
+                        style={{ width: `${stats.averageScore}%` }}
                     >
                         <div className="absolute right-0 top-1/2 -translate-y-1/2 w-full h-full bg-white/20 animate-shimmer"></div>
                     </div>
                 </div>
 
                 <p className="mt-4 text-text-primary/90 font-medium relative z-10">
-                    Keep going! Next Milestone : <span className="text-text-primary font-bold">Advanced React Patterns</span>
+                    Keep going! Next Milestone : <span className="text-text-primary font-bold">Mastering Clean Code</span>
                 </p>
             </div>
 
             {/* Action Cards Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-                {/* Continue Chat Card */}
+                {/* Start New Report Card */}
                 <ActionCard
                     icon={Play}
                     iconColor="text-purple-400"
                     iconBg="bg-purple-500/20"
-                    title={<>continue last <span className="text-purple-400">Chat</span></>}
-                    subtitle="Last session: understanding Redux Toolkit , 5hours ago"
-                    buttonText="Resume session"
+                    title={<>Start New <span className="text-purple-400">Report</span></>}
+                    subtitle="Start a new analysis for your code."
+                    buttonText="New Report"
                     buttonColor="bg-primary/50"
                     glow="group-hover:shadow-[0_0_30px_rgba(189,52,254,0.3)]"
+                    onClick={() => navigate('/dashboard/chat')}
                 />
 
-                {/* Upload Code Card */}
+                {/* History Card */}
                 <ActionCard
-                    icon={Upload}
+                    icon={History}
                     iconColor="text-pink-400"
                     iconBg="bg-pink-500/20"
-                    title={<>Upload <span className="text-pink-300">Code</span></>}
-                    subtitle="Submit your Project for instant Feedback and Suggestion"
-                    buttonText="Select File"
+                    title={<><span className="text-pink-300">History</span></>}
+                    subtitle="View your latest activities and previous reports."
+                    buttonText="View History"
                     buttonColor="bg-primary/50"
                     glow="group-hover:shadow-[0_0_30px_rgba(236,72,153,0.3)]"
-                    onClick={() => navigate('/dashboard/submit')}
+                    onClick={() => navigate('/dashboard/reports')}
                 />
 
-                {/* Today's Goal Card */}
+                {/* Tutorial Card */}
                 <ActionCard
                     icon={Target}
                     iconColor="text-accent"
                     iconBg="bg-accent/20"
-                    title={<>Today's <span className="text-purple-400">Goal:</span><br /> Master Re<span className="text-purple-400">act Hooks</span></>}
-                    subtitle="Continue the interactive tutorial and build a costume one"
-                    buttonText="Start tutorial"
+                    title={<>App <span className="text-purple-400">Tutorial</span></>}
+                    subtitle="Learn how to use CodeMentor AI effectively."
+                    buttonText="Watch Tutorial"
                     buttonColor="bg-primary/50"
                     glow="group-hover:shadow-[0_0_30px_rgba(100,255,218,0.3)]"
                 />
