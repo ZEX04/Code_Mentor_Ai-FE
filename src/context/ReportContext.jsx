@@ -68,12 +68,20 @@ export const ReportProvider = ({ children }) => {
 
     // Add new report with DB Persistence
     const addReport = useCallback(async (newReportData) => {
-        // 1. Optimistic Update (Immediate UI feedback)
-        const tempId = Date.now();
-        const optimisticData = { ...newReportData, id: tempId };
+        // 1. Optimistic Update or Update Existing (Immediate UI feedback)
+        const hasDbId = typeof newReportData.id === 'string' && newReportData.id.includes('-');
+        const optimisticId = hasDbId ? newReportData.id : Date.now();
+        const optimisticData = { ...newReportData, id: optimisticId };
         const formattedReport = formatReportData(optimisticData);
-        console.log("[ReportContext] Optimistically adding report:", formattedReport);
-        setReports((prev) => [formattedReport, ...prev]);
+
+        console.log("[ReportContext] Optimistically adding/updating report:", formattedReport);
+        setReports((prev) => {
+            const exists = prev.some(r => r.id === optimisticId);
+            if (exists) {
+                return prev.map(r => r.id === optimisticId ? formattedReport : r);
+            }
+            return [formattedReport, ...prev];
+        });
 
         // 2. Persist to DB (Background)
         let finalReport = formattedReport;
@@ -86,27 +94,48 @@ export const ReportProvider = ({ children }) => {
 
             const payload = {
                 user_id: session.user.id,
-                ...newReportData,
                 lang: newReportData.lang || 'javascript',
+                problem_code: newReportData.submitted_problem || newReportData.problem_code || newReportData.problem,
+                solution_code: newReportData.submitted_solution || newReportData.solution_code || newReportData.code,
+                corrected_code: newReportData.corrected_code || newReportData.ai_code || newReportData.suggested_solution,
+                diff_view: newReportData.diff_view || newReportData.corrected_code,
+                suggested_solution: newReportData.suggested_solution || newReportData.corrected_code || newReportData.ai_code
             };
 
-            delete payload.id;
-            delete payload.created_at;
+            // Remove undefined properties to prevent Supabase errors
+            Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
 
-            console.log("[ReportContext] Persisting to DB:", payload);
-            const { data: insertedData, error } = await supabase
-                .from('code_submit')
-                .insert([payload])
-                .select()
-                .single();
+            console.log("[ReportContext] Persisting to DB with payload:", payload);
+
+            let insertedData, error;
+            if (hasDbId) {
+                // Update the existing row created by the Edge Function
+                const res = await supabase
+                    .from('code_submit')
+                    .update(payload)
+                    .eq('id', optimisticId)
+                    .select()
+                    .single();
+                insertedData = res.data;
+                error = res.error;
+            } else {
+                // Insert a new row
+                const res = await supabase
+                    .from('code_submit')
+                    .insert([payload])
+                    .select()
+                    .single();
+                insertedData = res.data;
+                error = res.error;
+            }
 
             if (error) {
-                console.error("[ReportContext] DB Insert Error:", error);
+                console.error("[ReportContext] DB Persist Error:", error);
             } else if (insertedData) {
-                console.log("[ReportContext] DB Insert Success, real ID:", insertedData.id);
+                console.log("[ReportContext] DB Persist Success, real ID:", insertedData.id);
                 // 3. Replace the optimistic report with the real one from DB (with correct UUID)
                 finalReport = formatReportData(insertedData);
-                setReports(prev => prev.map(r => r.id === tempId ? finalReport : r));
+                setReports(prev => prev.map(r => r.id === optimisticId ? finalReport : r));
             }
         } catch (err) {
             console.error("[ReportContext] Persistence Failed:", err);

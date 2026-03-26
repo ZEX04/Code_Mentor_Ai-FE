@@ -40,20 +40,21 @@ const Reports = () => {
     // So this is good.
     const [localReport, setLocalReport] = useState(directReport);
 
+    const processedDirectDataRef = React.useRef(false);
+
     // 2. Silent Sync & Persistence
     useEffect(() => {
         // If we have direct data, persist it (optimistically added to context already, but addReport now persists to DB)
-        if (directData) {
+        if (directData && !processedDirectDataRef.current) {
+            processedDirectDataRef.current = true;
             console.log("Reports: Persisting direct data...");
             addReport(directData);
             // Clear location state through React Router so it doesn't trigger again
             navigate(location.pathname, { replace: true, state: {} });
+        } else if (!directData) {
+            processedDirectDataRef.current = false;
         }
-
-        // We removed the automatic 'refreshReports()' call here to prevent 
-        // the app from repeatedly fetching data every time the user navigates 
-        // back to the Reports page. ReportContext already handles the initial fetch.
-    }, [directData, addReport]);
+    }, [directData, addReport, navigate, location.pathname]);
 
     // 2. Determine which report to show
     // Priority: Local Report -> Selected Report -> First Report
@@ -219,7 +220,7 @@ const Reports = () => {
                         <h3 className="text-text-primary font-bold mb-6">Code Quality</h3>
                         <div className="space-y-6">
                             <SkillBar label="Readability" percentage={selectedReport.metrics?.readability || 0} color="bg-blue-600" />
-                            <SkillBar label="Maintainability" percentage={selectedReport.metrics?.maintainability || 0} color="bg-purple-600" />
+                            <SkillBar label="Maintainability" percentage={selectedReport.metrics?.maintainability || 0} color="bg-purple" />
                             <SkillBar label="Efficiency" percentage={selectedReport.metrics?.efficiency || 0} color="bg-teal-600" />
                             <SkillBar label="Problem Solving" percentage={selectedReport.metrics?.problemSolving || 0} color="bg-orange-600" />
                             <SkillBar label="Edge Cases" percentage={selectedReport.metrics?.edgeCases || 0} color="bg-red-600" />
@@ -315,14 +316,109 @@ const Reports = () => {
                                         <Activity className="w-4 h-4 text-blue-500" />}
                             </div>
                         </div>
-                        <div className="p-6 overflow-x-auto max-h-[400px] overflow-y-auto custom-scrollbar">
-                            <pre className="text-sm font-mono text-gray-100 leading-relaxed selection:bg-accent/30 whitespace-pre-wrap">
-                                <code>
-                                    {activeTab === 'source' ? selectedReport.snippet :
+                        <div className="p-0 overflow-x-auto max-h-[400px] overflow-y-auto custom-scrollbar bg-[#0f172a]">
+                            <div className="text-sm font-mono text-gray-100 leading-relaxed selection:bg-accent/30 py-4 w-fit min-w-full">
+                                {(() => {
+                                    const rawCode = activeTab === 'source' ? selectedReport.snippet :
                                         activeTab === 'suggested' ? (selectedReport.diff_view || selectedReport.suggested_solution) :
-                                            selectedReport.problem_desc}
-                                </code>
-                            </pre>
+                                            selectedReport.problem_desc;
+
+                                    if (!rawCode) return <div className="px-6 text-gray-500 italic">No content available</div>;
+
+                                    const codeString = String(rawCode);
+
+                                    if (activeTab === 'source' && selectedReport.issues?.list?.length > 0) {
+                                        const errorLines = {};
+                                        selectedReport.issues.list.forEach(issue => {
+                                            const lineNum = parseInt(issue.line, 10);
+                                            if (!isNaN(lineNum)) {
+                                                if (!errorLines[lineNum]) errorLines[lineNum] = [];
+                                                errorLines[lineNum].push(issue);
+                                            }
+                                        });
+
+                                        return codeString.split('\n').map((lineText, idx) => {
+                                            const lineNum = idx + 1;
+                                            const issues = errorLines[lineNum];
+                                            if (issues && issues.length > 0) {
+                                                const issue = issues[0];
+                                                const severity = issue.severity?.toLowerCase() || 'minor';
+                                                const isCritical = severity === 'critical' || severity === 'major';
+                                                const isWarning = severity === 'warning' || severity === 'minor';
+                                                const bgClass = isCritical ? 'bg-red-500/20 shadow-[inset_4px_0_0_0_rgba(239,68,68,0.8)]' : isWarning ? 'bg-yellow-500/20 shadow-[inset_4px_0_0_0_rgba(234,179,8,0.8)]' : 'bg-blue-500/20 shadow-[inset_4px_0_0_0_rgba(59,130,246,0.8)]';
+                                                const tipBorder = isCritical ? 'border-red-500/50' : isWarning ? 'border-yellow-500/50' : 'border-blue-500/50';
+
+                                                return (
+                                                    <div key={idx} className={`group relative flex px-6 py-0.5 my-[1px] hover:bg-white/5 transition-colors ${bgClass}`}>
+                                                        <div className="text-gray-500 select-none mr-4 w-8 text-right shrink-0 font-medium">{lineNum}</div>
+                                                        <div className="flex-1 whitespace-pre">{lineText || ' '}</div>
+
+                                                        {/* Tooltip */}
+                                                        <div className={`absolute left-16 top-full mt-1 z-50 hidden group-hover:block bg-[#1a2540] border ${tipBorder} p-3 rounded-lg shadow-2xl text-xs w-max max-w-sm text-gray-200`}>
+                                                            {issues.map((iss, i) => (
+                                                                <div key={i} className={i !== 0 ? 'mt-2 pt-2 border-t border-white/10' : ''}>
+                                                                    <div className={`font-bold mb-1 tracking-wider uppercase ${isCritical ? 'text-red-400' : isWarning ? 'text-yellow-400' : 'text-blue-400'}`}>
+                                                                        {iss.severity} ISSUE
+                                                                    </div>
+                                                                    <div className="opacity-90 leading-relaxed font-sans">{iss.message}</div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }
+                                            return (
+                                                <div key={idx} className="flex px-6 hover:bg-white/5 transition-colors leading-relaxed">
+                                                    <div className="text-gray-600 select-none mr-4 w-8 text-right shrink-0 opacity-50 font-medium">{lineNum}</div>
+                                                    <div className="flex-1 whitespace-pre">{lineText || ' '}</div>
+                                                </div>
+                                            );
+                                        });
+                                    }
+
+                                    if (activeTab === 'suggested') {
+                                        const origStr = String(selectedReport.snippet || '');
+                                        const origLineSet = new Set(origStr.split('\n').map(l => l.trim()));
+
+                                        return codeString.split('\n').map((lineText, idx) => {
+                                            const isAdditionMarker = lineText.startsWith('+ ') || lineText === '+';
+                                            const isDeletionMarker = lineText.startsWith('- ') || lineText === '-';
+
+                                            let bgClass = '';
+                                            if (isAdditionMarker) {
+                                                bgClass = 'bg-green-500/30 shadow-[inset_4px_0_0_0_rgba(34,197,94,0.8)] text-green-100 font-bold';
+                                            } else if (isDeletionMarker) {
+                                                bgClass = 'bg-red-500/20 shadow-[inset_4px_0_0_0_rgba(239,68,68,0.8)] text-red-100 line-through opacity-70';
+                                            } else {
+                                                const trimmed = lineText.trim();
+                                                const isCommonSyntax = ['{', '}', '();', 'return;', '}', '};', ']', '];'].includes(trimmed);
+
+                                                if (trimmed.length > 2 && !isCommonSyntax && !origLineSet.has(trimmed)) {
+                                                    // This is a new or modified line
+                                                    bgClass = 'bg-green-500/10 shadow-[inset_4px_0_0_0_rgba(34,197,94,0.5)] text-green-50';
+                                                } else if (selectedReport.issues?.list?.some(i => parseInt(i.line) === idx + 1)) {
+                                                    // Highlight the specific line index noted by the AI as flawed to show where the fix is
+                                                    bgClass = 'bg-green-500/10 shadow-[inset_4px_0_0_0_rgba(34,197,94,0.3)] text-green-50/90';
+                                                }
+                                            }
+
+                                            return (
+                                                <div key={idx} className={`flex px-6 py-0.5 my-[1px] hover:bg-white/5 transition-colors leading-relaxed ${bgClass}`}>
+                                                    <div className="text-gray-600 select-none mr-4 w-8 text-right shrink-0 opacity-50 font-medium">{idx + 1}</div>
+                                                    <div className="flex-1 whitespace-pre">{lineText || ' '}</div>
+                                                </div>
+                                            );
+                                        });
+                                    }
+
+                                    return codeString.split('\n').map((lineText, idx) => (
+                                        <div key={idx} className="flex px-6 hover:bg-white/5 transition-colors leading-relaxed">
+                                            <div className="text-gray-600 select-none mr-4 w-8 text-right shrink-0 opacity-50 font-medium">{idx + 1}</div>
+                                            <div className="flex-1 whitespace-pre">{lineText || ' '}</div>
+                                        </div>
+                                    ));
+                                })()}
+                            </div>
                         </div>
                     </div>
                 </div>

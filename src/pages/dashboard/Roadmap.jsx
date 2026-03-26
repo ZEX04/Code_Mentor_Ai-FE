@@ -299,12 +299,6 @@ const Roadmap = () => {
                                                     <span>{map.date}</span>
                                                     <span>•</span>
                                                     <span>Score: {map.score}%</span>
-                                                    <span>•</span>
-                                                    {map.roadmap ? (
-                                                        <span className="text-green-500 font-bold">Has Roadmap Data</span>
-                                                    ) : (
-                                                        <span className="text-red-500 font-bold">NULL Roadmap</span>
-                                                    )}
                                                 </div>
                                             </div>
                                         </div>
