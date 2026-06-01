@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Mail, MapPin, Link as LinkIcon, Twitter, Github, Linkedin, Camera, Code, Hash, Calendar, Trophy, Loader2 } from 'lucide-react';
+import { Mail, MapPin, Link as LinkIcon, Twitter, Github, Linkedin, Camera, Code, Hash, Calendar, Trophy, Loader2, User, X, Check } from 'lucide-react';
 import { useReports } from '../../context/ReportContext';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
@@ -9,6 +9,9 @@ const Profile = () => {
     const { user, loading: authLoading } = useAuth();
     const [loading, setLoading] = useState(true);
     const [profile, setProfile] = useState(null);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editForm, setEditForm] = useState({ full_name: '', role: '' });
+    const [isSaving, setIsSaving] = useState(false);
 
     // 1. Get User and Calculate Stats
 
@@ -64,6 +67,37 @@ const Profile = () => {
         location: profile?.location || 'Global',
         website: profile?.website || 'portfolio.dev',
         avatar: profile?.avatar_url || null
+    };
+
+    const handleEditClick = () => {
+        setEditForm({
+            full_name: displayUser.name,
+            role: displayUser.role === 'Full Stack Developer' && !profile?.role ? '' : displayUser.role
+        });
+        setIsEditing(true);
+    };
+
+    const handleSaveProfile = async () => {
+        if (!user) return;
+        setIsSaving(true);
+        try {
+            const updates = {
+                id: user.id,
+                full_name: editForm.full_name,
+                role: editForm.role || 'Full Stack Developer',
+                updated_at: new Date()
+            };
+            
+            const { error } = await supabase.from('profiles').upsert(updates);
+            if (error) throw error;
+            
+            setProfile(prev => ({ ...prev, ...updates }));
+            setIsEditing(false);
+        } catch (error) {
+            console.error("Error updating profile:", error);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const derivedSkills = useMemo(() => {
@@ -205,26 +239,18 @@ const Profile = () => {
                                 {displayUser.avatar ? (
                                     <img src={displayUser.avatar} alt="Profile" className="w-full h-full object-cover" />
                                 ) : (
-                                    <span className="text-4xl">👋</span>
+                                    <User className="w-10 h-10 text-text-secondary" />
                                 )}
                             </div>
                         </div>
-                        <button className="absolute -bottom-2 -right-2 p-1.5 bg-primary rounded-full border border-border text-text-primary hover:bg-accent hover:text-primary transition-colors">
-                            <Camera className="w-3 h-3" />
-                        </button>
                     </div>
 
                     <div>
                         <h1 className="text-3xl font-bold text-text-primary">{displayUser.name}</h1>
-                        <p className="text-text-secondary">{displayUser.role} • AI Enthusiast</p>
+                        <p className="text-text-secondary">{displayUser.role}</p>
                     </div>
                 </div>
 
-                <div className="absolute top-1/2 right-10 -translate-y-1/2 flex gap-3">
-                    <button className="px-6 py-2 border border-border bg-secondary text-text-primary font-medium rounded-lg hover:bg-white/10 transition-colors">
-                        Edit Profile
-                    </button>
-                </div>
             </div>
 
             {/* Stats Grid - Moved here from Home.jsx */}
@@ -330,6 +356,60 @@ const Profile = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Edit Profile Modal */}
+            {isEditing && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-[#0a1128] border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-xl font-bold text-white">Edit Profile</h2>
+                            <button onClick={() => setIsEditing(false)} className="text-white/50 hover:text-white transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        
+                        <div className="space-y-4 mb-6">
+                            <div>
+                                <label className="block text-sm font-medium text-white/70 mb-1">Full Name</label>
+                                <input 
+                                    type="text" 
+                                    value={editForm.full_name}
+                                    onChange={(e) => setEditForm({...editForm, full_name: e.target.value})}
+                                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white outline-none focus:border-accent transition-colors"
+                                    placeholder="Your Name"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-white/70 mb-1">Specialization / Role</label>
+                                <input 
+                                    type="text" 
+                                    value={editForm.role}
+                                    onChange={(e) => setEditForm({...editForm, role: e.target.value})}
+                                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white outline-none focus:border-accent transition-colors"
+                                    placeholder="e.g. Full Stack Developer"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-3">
+                            <button 
+                                onClick={() => setIsEditing(false)}
+                                className="px-4 py-2 rounded-lg text-white/70 hover:bg-white/5 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={handleSaveProfile}
+                                disabled={isSaving}
+                                className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/80 transition-colors flex items-center gap-2 disabled:opacity-50"
+                            >
+                                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                                {isSaving ? 'Saving...' : 'Save Changes'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

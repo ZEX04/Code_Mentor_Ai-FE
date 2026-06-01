@@ -24,7 +24,7 @@ function App() {
       <AuthProvider>
         <NotificationProvider>
           <ReportProvider>
-            <BrowserRouter>
+            <BrowserRouter basename={import.meta.env.BASE_URL}>
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/auth" element={<Auth />} />

@@ -119,13 +119,9 @@ export const formatReportData = (apiResponse) => {
         // Keep 'quality' for backward compatibility if needed, or just rely on metrics. 
         // We'll update UI to use 'metrics'.
 
-        issues: {
-            critical: apiResponse.critical || 0,
-            major: apiResponse.major || 0,
-            medium: apiResponse.medium || apiResponse.warning || 0,
-            minor: apiResponse.minor || apiResponse.suggestions || 0,
-            list: (apiResponse.issues || []).map(issue => {
-                let foundSkill = issue.skill || issue.category || issue.type || issue.metric || issue.affected_metric || issue.associated_skill || issue.related_skill || issue.code_quality || '';
+        issues: (() => {
+            const list = (apiResponse.issues || []).map(issue => {
+                let foundSkill = issue.feedback_type || issue.skill || issue.category || issue.type || issue.metric || issue.affected_metric || issue.associated_skill || issue.related_skill || issue.code_quality || '';
                 
                 if (!foundSkill || foundSkill.toLowerCase() === 'syntax error') {
                     // Deep scan object values for any of the known skill names
@@ -143,14 +139,40 @@ export const formatReportData = (apiResponse) => {
                     }
                 }
                 
+                let sev = String(issue.severity || 'minor').toLowerCase();
+                let normalizedSeverity = 'minor';
+                if (sev.includes('critical')) normalizedSeverity = 'critical';
+                else if (sev.includes('major')) normalizedSeverity = 'major';
+                else if (sev.includes('medium') || sev.includes('warning')) normalizedSeverity = 'medium';
+
                 return {
                     line: issue.line,
-                    severity: issue.severity,
+                    severity: normalizedSeverity,
                     message: issue.message,
                     skill: foundSkill || 'Code Quality'
                 };
-            })
-        },
+            });
+
+            let criticalCount = 0;
+            let majorCount = 0;
+            let mediumCount = 0;
+            let minorCount = 0;
+
+            list.forEach(issue => {
+                if (issue.severity === 'critical') criticalCount++;
+                else if (issue.severity === 'major') majorCount++;
+                else if (issue.severity === 'medium') mediumCount++;
+                else minorCount++;
+            });
+
+            return {
+                critical: criticalCount,
+                major: majorCount,
+                medium: mediumCount,
+                minor: minorCount,
+                list: list
+            };
+        })(),
         snippet: apiResponse.submitted_solution || apiResponse.solution_code || apiResponse.code || apiResponse.user_code || apiResponse.solution || apiResponse.snippet || '', // User's code
         problem_desc: apiResponse.submitted_problem || apiResponse.problem_code || apiResponse.problem || apiResponse.problem_desc || '', // The problem description
         suggested_solution: apiResponse.suggested_solution || apiResponse.corrected_code || apiResponse.ai_code || apiResponse.suggestion || '',

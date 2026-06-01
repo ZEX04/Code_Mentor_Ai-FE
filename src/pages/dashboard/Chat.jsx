@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Code, FileText, Send, ChevronDown, Check, Loader2 } from 'lucide-react';
+import { Sparkles, Code, FileText, Send, ChevronDown, Check, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { fetchWithRetry } from '../../utils/apiRetry';
@@ -15,6 +15,7 @@ const Chat = () => {
     const [showToast, setShowToast] = useState(false);
     const [isLangOpen, setIsLangOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
 
     const languages = [
         'Auto Detect',
@@ -27,8 +28,10 @@ const Chat = () => {
     ];
 
     const handleSubmit = async () => {
+        setError('');
+
         if (!problem || !solution) {
-            alert('Please fill in both the problem and your solution.');
+            setError('Please fill in both the problem and your solution.');
             return;
         }
 
@@ -107,6 +110,14 @@ const Chat = () => {
                 <p className="text-text-secondary">Select path to continue learning</p>
                 {/* Search bar removed as per request */}
             </div>
+
+            {/* Error Message */}
+            {error && (
+                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-red-500">
+                    <AlertCircle className="w-5 h-5" />
+                    <span>{error}</span>
+                </div>
+            )}
 
             {/* Main Content Area - Two Columns */}
             <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">

@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react';
-import { Play, History, Target, ArrowRight, Rocket } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Play, History, Target, ArrowRight, Rocket, X } from 'lucide-react';
+import tutorialVideo from '../../assets/Final.mp4';
 import { useReports } from '../../context/ReportContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -8,6 +9,7 @@ const DashboardHome = () => {
     const { reports } = useReports();
     const { user } = useAuth();
     const navigate = useNavigate();
+    const [showTutorial, setShowTutorial] = useState(false);
 
     // User Data
     const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Friend';
@@ -130,9 +132,40 @@ const DashboardHome = () => {
                     buttonText="Watch Tutorial"
                     buttonColor="bg-primary/50"
                     glow="group-hover:shadow-[0_0_30px_rgba(100,255,218,0.3)]"
+                    onClick={() => setShowTutorial(true)}
                 />
 
             </div>
+
+            {/* Video Modal */}
+            {showTutorial && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="relative w-full max-w-5xl bg-secondary border border-white/10 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="flex justify-between items-center p-4 border-b border-white/10 bg-white/5">
+                            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                <Target className="w-5 h-5 text-accent" /> CodeMentor AI Tutorial
+                            </h3>
+                            <button 
+                                onClick={() => setShowTutorial(false)}
+                                className="p-1 rounded-lg text-text-secondary hover:text-white hover:bg-white/10 transition-colors"
+                            >
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+                        <div className="w-full aspect-video bg-black flex items-center justify-center relative group">
+                            <video 
+                                src={tutorialVideo} 
+                                className="w-full h-full object-contain"
+                                controls 
+                                autoPlay 
+                                playsInline
+                            >
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -16,11 +16,11 @@ const Navbar = () => {
             {/* Logo Logic: If logged in, do nothing. If logged out, link to / */}
             {user ? (
                 <div className="flex items-center cursor-default select-none w-[180px] h-16 -ml-6 md:-ml-4 relative">
-                    <img src="/logo.png" alt="CodeMentor AI" className="absolute top-1/2 -translate-y-1/2 w-full h-auto object-contain transform scale-[1.7] origin-left pointer-events-none" />
+                    <img src={`${import.meta.env.BASE_URL}logo.png`} alt="CodeMentor AI" className="absolute top-1/2 -translate-y-1/2 w-full h-auto object-contain transform scale-[1.7] origin-left pointer-events-none" />
                 </div>
             ) : (
                 <Link to="/" className="flex items-center hover:opacity-80 transition-opacity w-[180px] h-16 -ml-6 md:-ml-4 relative" onClick={() => window.scrollTo(0, 0)}>
-                    <img src="/logo.png" alt="CodeMentor AI" className="absolute top-1/2 -translate-y-1/2 w-full h-auto object-contain transform scale-[1.7] origin-left pointer-events-none" />
+                    <img src={`${import.meta.env.BASE_URL}logo.png`} alt="CodeMentor AI" className="absolute top-1/2 -translate-y-1/2 w-full h-auto object-contain transform scale-[1.7] origin-left pointer-events-none" />
                 </Link>
             )}
 

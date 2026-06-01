@@ -217,9 +217,8 @@ const Roadmap = () => {
             const roadmapArray = extractRoadmap(rawData);
 
             if (!roadmapArray || roadmapArray.length === 0) {
-                // Return exactly what the obj was so we can see it on screen!
-                const shape = typeof rawData === 'object' ? JSON.stringify(rawData).substring(0, 200) : String(rawData).substring(0, 200);
-                throw new Error("Invalid roadmap format. Input shape: " + shape);
+                // Return a safe, user-friendly error instead of dumping raw JSON
+                throw new Error("We couldn't generate a valid roadmap format from the AI response. Please try again.");
             }
 
             console.log("Successfully extracted roadmap array:", roadmapArray);

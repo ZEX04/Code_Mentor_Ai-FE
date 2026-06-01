@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Zap, FileCode, Activity, Eye, Calendar, Code, CheckCircle, AlertTriangle, XCircle, Terminal, Lightbulb, ChevronRight, FileDiff, Search } from 'lucide-react';
+import { Zap, FileCode, Activity, Eye, Calendar, Code, CheckCircle, AlertTriangle, XCircle, Terminal, Lightbulb, ChevronRight, ChevronLeft, FileDiff, Search } from 'lucide-react';
 import { useReports } from '../../context/ReportContext';
 import { getIconByName, formatReportData } from '../../utils/reportUtils';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -10,8 +10,9 @@ const Reports = () => {
     const [activeTab, setActiveTab] = useState('source');
     const [tooltip, setTooltip] = useState({ visible: false, x: 0, y: 0, issues: [], tipBorder: '' });
     const [searchQuery, setSearchQuery] = useState('');
-    const navigate = useNavigate();
     const location = useLocation();
+    const [showList, setShowList] = useState(!location.state?.data);
+    const navigate = useNavigate();
 
     const filteredReports = reports.filter(r =>
         r.language?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -55,13 +56,20 @@ const Reports = () => {
         if (directData && !processedDirectDataRef.current) {
             processedDirectDataRef.current = true;
             console.log("Reports: Persisting direct data...");
-            addReport(directData);
+            
+            const syncWithDB = async () => {
+                await addReport(directData);
+                await refreshReports();
+                setLocalReport(null); // Force UI to snap to the clean DB row
+            };
+            syncWithDB();
+
             // Clear location state through React Router so it doesn't trigger again
             navigate(location.pathname, { replace: true, state: {} });
         } else if (!directData) {
             processedDirectDataRef.current = false;
         }
-    }, [directData, addReport, navigate, location.pathname]);
+    }, [directData, addReport, refreshReports, navigate, location.pathname]);
 
     // 2. Determine which report to show
     // Priority: Synced Context Version of Local -> Local Report -> Selected Report -> First Filtered Report -> First Report
@@ -80,6 +88,7 @@ const Reports = () => {
         console.log("Reports: Sidebar clicked, switching to report ID:", id);
         setLocalReport(null); // Clear the direct view to switch to history mode
         setSelectedReportId(id);
+        setShowList(false);
     };
 
     // 3. Loading Logic - BYPASS if we have local data!
@@ -168,8 +177,9 @@ const Reports = () => {
             )}
 
             {/* Left Sidebar - List */}
-            <div className="w-full lg:w-1/3 flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar">
-                <div>
+            {showList && (
+                <div className="w-full flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar">
+                    <div>
                     <h2 className="text-2xl font-bold text-text-primary mb-1">Code Reviews</h2>
                     <p className="text-text-secondary text-sm">Your generated analysis reports</p>
                 </div>
@@ -239,12 +249,21 @@ const Reports = () => {
                     })}
                 </div>
             </div>
+            )}
 
             {/* Right Content - Detail View */}
-            <div className="flex-1 flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar pb-10">
+            {!showList && selectedReport && (
+                <div className="flex-1 flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar pb-10">
+                    <button 
+                        onClick={() => setShowList(true)}
+                        className="flex items-center gap-2 text-text-secondary hover:text-white transition-colors w-fit -mb-2"
+                    >
+                        <ChevronLeft className="w-5 h-5" />
+                        <span>Back to Reports</span>
+                    </button>
 
-                {/* Header Card */}
-                <div className={`rounded-3xl bg-gradient-to-r ${selectedReport.color} p-10 min-h-[240px] flex flex-col justify-center text-white shadow-lg relative overflow-hidden`}>
+                    {/* Header Card */}
+                    <div className={`rounded-3xl bg-gradient-to-r ${selectedReport.color} p-10 min-h-[240px] flex flex-col justify-center text-white shadow-lg relative overflow-hidden`}>
                     <div className="relative z-10 flex justify-between items-start">
                         <div>
                             <div className="flex items-center gap-3 mb-2">
@@ -414,9 +433,14 @@ const Reports = () => {
                         <div className="p-0 overflow-x-auto max-h-[400px] overflow-y-auto custom-scrollbar bg-[#0f172a]">
                             <div className="text-sm font-mono text-gray-100 leading-relaxed selection:bg-accent/30 py-4 w-fit min-w-full">
                                 {(() => {
-                                    const rawCode = activeTab === 'source' ? selectedReport.snippet :
-                                        activeTab === 'suggested' ? (selectedReport.diff_view || selectedReport.suggested_solution) :
+                                    let rawCode = activeTab === 'source' ? selectedReport.snippet :
+                                        activeTab === 'suggested' ? (selectedReport.suggested_solution || selectedReport.diff_view) :
                                             selectedReport.problem_desc;
+
+                                    // Force remove any AI hallucinated markers like $(1), $(2), $(3)
+                                    if (activeTab === 'suggested' && rawCode) {
+                                        rawCode = String(rawCode).replace(/\$\(\d+\)\s*/g, '');
+                                    }
 
                                     if (!rawCode) return <div className="px-6 text-gray-500 italic">No content available</div>;
 
@@ -536,7 +560,7 @@ const Reports = () => {
                     <div className="bg-secondary/50 backdrop-blur border border-border rounded-2xl p-6">
                         <h3 className="text-text-primary font-bold mb-6">Recommendations</h3>
                         <div className="space-y-3">
-                            {selectedReport.recommendations.slice(0, 5).map((rec, index) => (
+                            {selectedReport.recommendations.map((rec, index) => (
                                 <div key={index} className="p-4 bg-primary/50 border border-white/5 rounded-xl flex items-start gap-3 hover:border-white/10 transition-colors">
                                     <div className="w-6 h-6 rounded-full bg-blue-500 flex-shrink-0 flex items-center justify-center text-xs font-bold text-white mt-0.5">
                                         {index + 1}
@@ -547,8 +571,8 @@ const Reports = () => {
                         </div>
                     </div>
                 )}
-
-            </div>
+                </div>
+            )}
         </div>
     );
 };

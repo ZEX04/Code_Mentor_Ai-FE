@@ -1,10 +1,34 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { useNotifications } from '../../context/NotificationContext';
 
 const Settings = () => {
     const { theme, toggleTheme } = useTheme();
-    const { pushEnabled, togglePush } = useNotifications();
+    const { pushEnabled, togglePush, addNotification } = useNotifications();
+    const [twoFAEnabled, setTwoFAEnabled] = useState(false);
+
+    const handleToggle2FA = () => {
+        setTwoFAEnabled(!twoFAEnabled);
+        if (addNotification) {
+            addNotification({
+                title: 'Security Updated',
+                message: !twoFAEnabled ? 'Two-Factor Authentication enabled.' : 'Two-Factor Authentication disabled.',
+                route: '/dashboard/settings'
+            });
+        }
+    };
+
+    const handleDeleteAccount = () => {
+        if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+            if (addNotification) {
+                addNotification({
+                    title: 'Account Deletion',
+                    message: 'Account deletion request submitted to support.',
+                    route: '/dashboard/settings'
+                });
+            }
+        }
+    };
 
     return (
         <div className="max-w-4xl mx-auto space-y-8">
@@ -59,14 +83,19 @@ const Settings = () => {
                 {/* Privacy */}
                 <Section title="Privacy & Security">
                     <div className="mt-4">
-                        <Toggle label="Two-Factor Authentication" description="Enable 2FA for extra security" checked={false} onChange={() => {}} />
+                        <Toggle label="Two-Factor Authentication" description="Enable 2FA for extra security" checked={twoFAEnabled} onChange={handleToggle2FA} />
                     </div>
                 </Section>
 
                 {/* Account Actions */}
                 <Section title="Account Actions">
                     <div className="space-y-3">
-                        <button className="w-full text-left px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 hover:bg-red-500/20 transition-colors text-sm font-medium">Delete Account</button>
+                        <button 
+                            onClick={handleDeleteAccount}
+                            className="w-full text-left px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 hover:bg-red-500/20 transition-colors text-sm font-medium"
+                        >
+                            Delete Account
+                        </button>
                     </div>
                 </Section>
 
